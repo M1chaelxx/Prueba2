@@ -38,7 +38,9 @@ function withTransform(url, t) {
   return isCloud(url) ? url.replace('/upload/', `/upload/${t}/`) : url;
 }
 export const imageSrc = (m, w = 1400) => withTransform(m.url, `f_auto,q_auto,w_${w},c_limit`);
-export const videoSrc = m => withTransform(m.url, 'f_auto,q_auto');
+// Los .mp4/.webm (ya comprimidos en el celular) se reproducen tal cual: permiten adelantar/atrasar enseguida.
+// Otros formatos (.mov de iPhone, etc.) se convierten al vuelo.
+export const videoSrc = m => (/\.(mp4|webm)(\?.*)?$/i.test(m.url || '') ? m.url : withTransform(m.url, 'f_auto,q_auto'));
 export const thumbSrc = m => {
   if (m.tipo === 'video') return withTransform(m.url, 'so_0,w_360,h_360,c_fill,f_jpg,q_auto').replace(/\.[a-z0-9]+(\?.*)?$/i, '.jpg');
   return withTransform(m.url, 'f_auto,q_auto,w_360,h_360,c_fill');

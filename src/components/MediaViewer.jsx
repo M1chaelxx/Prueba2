@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { imageSrc, videoSrc } from '../utils/cloudinary';
+import VideoPlayer from './VideoPlayer';
 
 // Visor a pantalla completa de fotos y videos
 export default function MediaViewer({ items, start = 0, onClose }) {
@@ -23,7 +24,7 @@ export default function MediaViewer({ items, start = 0, onClose }) {
       <button className="viewer-close" onClick={onClose} aria-label="Cerrar">✕</button>
       <div className="viewer-body" onClick={e => e.stopPropagation()}>
         {m.tipo === 'video'
-          ? <video key={m.id} src={src || videoSrc(m)} controls autoPlay playsInline />
+          ? <VideoPlayer key={m.id} src={src || videoSrc(m)} />
           : <img key={m.id} src={src || imageSrc(m)} alt="Referencia" />}
       </div>
       {items.length > 1 && (

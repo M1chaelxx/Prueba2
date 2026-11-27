@@ -26,7 +26,12 @@ export async function compressVideo(file, onProgress, quality = DEFAULT_QUALITY,
   const w = track.displayWidth, h = track.displayHeight;
   const k = Math.min(1, Q.side / Math.max(w, h));
   const even = n => Math.max(2, Math.round(n / 2) * 2);
-  const opts = { video: { width: even(w * k), frameRate: 30, bitrate: Q.video }, audio: { bitrate: Q.audio } };
+  // Límite de 30 cuadros por segundo: si el video ya tiene 30 o menos, se respeta su ritmo original
+  let fps = 30;
+  try { fps = (await track.computePacketStats(150)).averagePacketRate || 30; } catch { /* usa 30 */ }
+  const video = { width: even(w * k), bitrate: Q.video };
+  if (fps > 30.5) video.frameRate = 30;
+  const opts = { video, audio: { bitrate: Q.audio } };
 
   const attempt = async format => {
     const output = new mb.Output({ format, target: new mb.BufferTarget() });
@@ -41,7 +46,8 @@ export async function compressVideo(file, onProgress, quality = DEFAULT_QUALITY,
   };
 
   let buf = null, type = 'video/mp4', ext = 'mp4';
-  try { buf = await attempt(new mb.Mp4OutputFormat()); } catch { buf = null; }
+  // fastStart: los datos de reproducción van al inicio del archivo, para poder adelantar y atrasar enseguida
+  try { buf = await attempt(new mb.Mp4OutputFormat({ fastStart: 'in-memory' })); } catch { buf = null; }
   if (!buf) { buf = await attempt(new mb.WebMOutputFormat()); type = 'video/webm'; ext = 'webm'; }
   if (!buf) throw new Error('No se pudo convertir el video en este dispositivo.');
 
