@@ -296,11 +296,11 @@ export default function ResultsScreen({ study, result, onBack, onNew, backLabel 
     if (!taktTime || rows.length === 0) return null;
     const maxVal = Math.max(...rows.map(r => r.realTot), taktTime);
     const scale = isMobileView ? 100 / maxVal : 200 / maxVal;
-    const barW = isMobileView ? Math.max(22, 150 / rows.length) : Math.max(30, 250 / rows.length);
-    const chartW = rows.length * barW + (isMobileView ? 40 : 60);
+    const leftMargin = isMobileView ? 30 : 45;
+    const chartW = Math.max(isMobileView ? 300 : 640, rows.length * (isMobileView ? 40 : 70) + leftMargin + 20);
+    const barW = (chartW - leftMargin - 20) / rows.length;
     const chartH = isMobileView ? 200 : 280;
     const baseY = isMobileView ? 160 : 260;
-    const leftMargin = isMobileView ? 30 : 45;
 
     return (
       <svg width="100%" height={chartH} viewBox={`0 0 ${chartW} ${chartH}`} style={{ marginTop: '12px' }} xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">

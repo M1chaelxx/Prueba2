@@ -234,9 +234,9 @@ export default function StudyScreen({ study, onBack, onResults }) {
                 )}
               </div>
 
-              <div style={{ marginTop: '12px', padding: '12px', backgroundColor: 'var(--bg2)', borderRadius: '6px' }}>
-                <div style={{ fontSize: '0.9rem', fontWeight: 500, marginBottom: '8px', color: 'var(--text2)' }}>O ingresar tiempo manual:</div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div className="manual-box">
+                <span className="manual-lbl">O ingresá un tiempo manual</span>
+                <div className="manual-row">
                   <input
                     type="number"
                     placeholder="segundos"
@@ -244,9 +244,8 @@ export default function StudyScreen({ study, onBack, onResults }) {
                     onChange={e => setManualTime(e.target.value)}
                     step="0.01"
                     min="0"
-                    style={{ flex: 1, padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--input-bg)', color: 'var(--text)' }}
                   />
-                  <button className="tb-rec-btn" onClick={recordManualTimePuesto} disabled={!manualTime || parseFloat(manualTime) <= 0} style={{ whiteSpace: 'nowrap' }}>
+                  <button className="tb-rec-btn" onClick={recordManualTimePuesto} disabled={!manualTime || parseFloat(manualTime) <= 0}>
                     ✓ Agregar
                   </button>
                 </div>
@@ -340,8 +339,8 @@ export default function StudyScreen({ study, onBack, onResults }) {
                         )}
                       </div>
 
-                      <div style={{ marginTop: '8px', padding: '8px 12px', backgroundColor: 'var(--bg2)', borderRadius: '4px', display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text2)' }}>Manual:</span>
+                      <div className="manual-mini">
+                        <span className="manual-lbl">Manual</span>
                         <input
                           type="number"
                           placeholder="seg"
@@ -349,10 +348,9 @@ export default function StudyScreen({ study, onBack, onResults }) {
                           onChange={e => setManualTime(e.target.value)}
                           step="0.01"
                           min="0"
-                          style={{ width: '60px', padding: '4px 6px', borderRadius: '3px', border: '1px solid var(--border)', backgroundColor: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.85rem' }}
                         />
-                        <button className="op-btn-sm rec" onClick={() => recordManualTimeAccion(a.id)} disabled={!manualTime || parseFloat(manualTime) <= 0} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
-                          +
+                        <button className="op-btn-sm rec" onClick={() => recordManualTimeAccion(a.id)} disabled={!manualTime || parseFloat(manualTime) <= 0}>
+                          ＋
                         </button>
                       </div>
                     </div>
