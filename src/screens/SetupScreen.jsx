@@ -140,7 +140,7 @@ export default function SetupScreen({ onNext, onBack, initial }) {
               </button>
             </div>
           </div>
-          <div style={{ padding: '8px 16px 10px', borderTop: '1px solid #f0f0f0' }}>
+          <div style={{ padding: '8px 16px 10px', borderTop: '1px solid var(--border)' }}>
             <p className="hint" style={{ fontSize: '0.8rem' }}>
               Se guarda y recarga automáticamente por cada combinación Modelo · Capacidad · Línea. Dejalo vacío si no necesitás análisis de Takt Time.
             </p>

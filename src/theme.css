@@ -369,3 +369,29 @@ code { background: var(--bg3); padding: 2px 7px; border-radius: 6px; }
 .fish-wrap { overflow-x: auto; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
 .ishi-title { display: block; margin: 6px 2px 0; color: var(--text2); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
 .pdf-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ── Modo oscuro / campos ── */
+:root { color-scheme: light dark; }
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+  .totals-card { background: linear-gradient(135deg, #16233f, #1a2b4d); }
+  .totals-card .stat-val { color: #9cc0ff; }
+  .medicion-card { background: linear-gradient(135deg, #16233f, #1a2b4d); }
+  .home-card .hc-icon { background: linear-gradient(135deg, #243660, #1d2c52); }
+  .home-card.secondary .hc-icon { background: linear-gradient(135deg, #26314d, #1f2943); }
+  .home-card.primary .hc-icon { background: rgba(255,255,255,.18); }
+  .kpi.sel { background: color-mix(in srgb, var(--c) 18%, var(--bg2)); }
+  .guia { background: color-mix(in srgb, var(--warn) 14%, var(--bg2)); }
+  .toast { background: #e8edf8; color: #0d1424; }
+}
+input, textarea, select, .field-row input, .val-input, .comment-textarea {
+  background: var(--input-bg); color: var(--text);
+}
+input:focus, textarea:focus, select:focus, .field-row input:focus, .val-input:focus, .comment-textarea:focus {
+  background: var(--input-bg); color: var(--text);
+}
+input::placeholder, textarea::placeholder { color: var(--text2); opacity: .7; }
+.setup-body .field-row { flex-wrap: wrap; row-gap: 8px; }
+.tt-input-row { flex-wrap: wrap; row-gap: 8px; }
+.tt-input-row .tt-save-btn { background: var(--bg2); color: var(--accent); border: 1.5px solid var(--accent); font-weight: 700; padding: 8px 14px; border-radius: 10px; white-space: nowrap; }
+.tt-input-row .tt-save-btn:disabled { color: var(--text2); border-color: var(--border); }
