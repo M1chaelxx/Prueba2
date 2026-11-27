@@ -23,6 +23,19 @@ export const TIPOS = ['Calidad', 'Seguridad', 'Producción', 'Mantenimiento', 'M
 export const SEVERIDADES = ['Baja', 'Media', 'Alta', 'Crítica'];
 export const CATEGORIAS_6M = ['Mano de obra', 'Máquina', 'Método', 'Material', 'Medición', 'Medio ambiente'];
 
+export const ESNO_DIM = [
+  { id: 'que', label: 'QUÉ', ph: 'Qué producto/defecto' },
+  { id: 'donde', label: 'DÓNDE', ph: 'Dónde ocurre (puesto, zona, pieza)' },
+  { id: 'cuando', label: 'CUÁNDO', ph: 'Cuándo (turno, lote, hora)' },
+  { id: 'cuanto', label: 'CUÁNTO', ph: 'Cuántas piezas / frecuencia' },
+];
+
+// Completa campos nuevos en problemas guardados antes de que existieran
+export function withDefaults(p) {
+  const d = newProblema();
+  return { ...d, ...p, w2h: { ...d.w2h, ...p.w2h }, d8: { ...d.d8, ...p.d8 }, esno: { ...d.esno, ...p.esno }, ishikawa: { ...d.ishikawa, ...p.ishikawa }, pareto: p.pareto || [] };
+}
+
 export function newProblema(base = {}) {
   const now = Date.now();
   return {
@@ -35,6 +48,10 @@ export function newProblema(base = {}) {
     medicion: null,
     porques: [''], causaRaiz: '',
     ishikawa: Object.fromEntries(CATEGORIAS_6M.map(c => [c, []])),
+    pareto: [],
+    w2h: { que: '', porque: '', donde: '', cuando: '', quien: '', como: '', cuanto: '' },
+    esno: Object.fromEntries(ESNO_DIM.map(d => [d.id, { es: '', no: '' }])),
+    d8: { d1: '', escape: '', d5: '', d6: '', d7: '', d8: '' },
     acciones: [], comentarios: [],
     creado: now, actualizado: now,
     ...base,

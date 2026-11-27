@@ -337,6 +337,41 @@ export default function InstructivoScreen({ onBack }) {
               </div>
             </div>
             <div className="var-row">
+              <div className="var-name">Pareto<br/><span className="var-sub">Lo que más pesa (80/20)</span></div>
+              <div className="var-def">
+                Cargá categorías (defectos, causas, paradas) con su cantidad. El gráfico las ordena de mayor a menor y muestra el % acumulado:
+                las que llegan hasta ~80% son las prioritarias. También hay un Pareto de todos los problemas (por puesto, tipo, severidad o línea)
+                desde la lista.
+              </div>
+            </div>
+            <div className="var-row">
+              <div className="var-name">8D<br/><span className="var-sub">Reporte formal en 8 pasos</span></div>
+              <div className="var-def">
+                D1 Equipo · D2 Descripción · D3 Contención · D4 Causa raíz (y punto de escape) · D5 Acciones correctivas · D6 Validación ·
+                D7 Prevención · D8 Cierre. Varias secciones se completan con lo que ya cargaste. Es el formato que suelen pedir clientes y calidad.
+              </div>
+            </div>
+            <div className="var-row">
+              <div className="var-name">5W2H<br/><span className="var-sub">Definir con 7 preguntas</span></div>
+              <div className="var-def">
+                Qué, Por qué, Dónde, Cuándo, Quién, Cómo y Cuánto. Evita que cada persona entienda el problema (o la solución) de forma distinta.
+                Un &ldquo;no sé&rdquo; es una tarea de investigación pendiente.
+              </div>
+            </div>
+            <div className="var-row">
+              <div className="var-name">Es / No es<br/><span className="var-sub">Acotar el problema</span></div>
+              <div className="var-def">
+                Comparás qué, dónde, cuándo y cuánto <em>sí</em> ocurre contra lo que podría ocurrir pero <em>no</em> ocurre. La causa suele estar en la diferencia.
+              </div>
+            </div>
+            <div className="var-row">
+              <div className="var-name">Matriz impacto / esfuerzo<br/><span className="var-sub">Priorizar acciones</span></div>
+              <div className="var-def">
+                Clasificá cada acción por impacto y esfuerzo: hacé primero los Quick wins (alto impacto, bajo esfuerzo), planificá los Proyectos grandes
+                y descartá lo de bajo impacto y alto esfuerzo.
+              </div>
+            </div>
+            <div className="var-row">
               <div className="var-name">Contención<br/><span className="var-sub">Acción inmediata</span></div>
               <div className="var-def">
                 Lo que hacés ya mismo para que el problema no siga afectando la producción (separar material, inspección al 100%, etc.),

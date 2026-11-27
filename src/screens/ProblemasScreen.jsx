@@ -6,7 +6,7 @@ import { firebaseReady } from '../firebase';
 import { fmtDate } from '../utils/timer';
 import {
   ESTADOS, TIPOS, SEVERIDADES, CATEGORIAS_6M,
-  newProblema, subscribeProblemas, saveProblema, deleteProblema, addComentario,
+  ESNO_DIM, withDefaults, newProblema, subscribeProblemas, saveProblema, deleteProblema, addComentario,
 } from '../utils/problemas';
 
 const estadoOf = id => ESTADOS.find(e => e.id === id) || ESTADOS[0];
@@ -25,6 +25,42 @@ function Guia({ titulo = '¿Cómo se usa?', children }) {
   );
 }
 
+function ParetoChart({ items }) {
+  const data = [...items].filter(i => i.n > 0).sort((a, b) => b.n - a.n);
+  const total = data.reduce((t, i) => t + i.n, 0);
+  if (!total) return <p className="hint">Cargá categorías con su cantidad para ver el gráfico.</p>;
+  const W = Math.max(320, data.length * 64 + 70), H = 230, base = 170, top = 20, left = 36;
+  const bw = (W - left - 36) / data.length;
+  const max = data[0].n;
+  let acc = 0;
+  const pts = data.map((d, i) => { acc += d.n; return [left + i * bw + bw / 2, base - (acc / total) * (base - top)]; });
+  return (
+    <div className="pareto-wrap">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: Math.min(W, 520) }}>
+        <line x1={left} y1={base} x2={W - 30} y2={base} stroke="var(--border)" />
+        <line x1={left} y1={top} x2={W - 30} y2={top} stroke="var(--border)" strokeDasharray="3,3" />
+        <line x1={left} y1={base - 0.8 * (base - top)} x2={W - 30} y2={base - 0.8 * (base - top)} stroke="#dc2626" strokeDasharray="4,3" />
+        <text x={W - 30} y={base - 0.8 * (base - top) - 3} fontSize="8" fill="#dc2626" textAnchor="end">80%</text>
+        {data.map((d, i) => {
+          const h = (d.n / max) * (base - top);
+          return (
+            <g key={d.label + i}>
+              <rect x={left + i * bw + bw * 0.15} y={base - h} width={bw * 0.7} height={h} rx="3" fill={i === 0 ? '#dc2626' : '#2563eb'} opacity=".9" />
+              <text x={left + i * bw + bw / 2} y={base - h - 4} fontSize="9" fontWeight="700" textAnchor="middle" fill="var(--text)">{d.n}</text>
+              <text x={left + i * bw + bw / 2} y={base + 12} fontSize="8" textAnchor="middle" fill="var(--text2)">{d.label.length > 11 ? `${d.label.slice(0, 10)}…` : d.label}</text>
+            </g>
+          );
+        })}
+        <polyline points={pts.map(x => x.join(',')).join(' ')} fill="none" stroke="#16a34a" strokeWidth="2" />
+        {pts.map((x, i) => <circle key={i} cx={x[0]} cy={x[1]} r="3" fill="#16a34a" />)}
+        <text x="4" y={top + 3} fontSize="8" fill="var(--text2)">100%</text>
+        <text x="4" y={base} fontSize="8" fill="var(--text2)">0</text>
+      </svg>
+      <p className="hint">Barra roja = la causa/categoría más frecuente. Línea verde = % acumulado. Lo que cruza el 80% son los &ldquo;pocos vitales&rdquo;.</p>
+    </div>
+  );
+}
+
 /* ───────────── Lista ───────────── */
 function Lista({ problemas, onOpen, onNew, onBack, status }) {
   const [fEstado, setFEstado] = useState('todos');
@@ -38,6 +74,12 @@ function Lista({ problemas, onOpen, onNew, onBack, status }) {
       && (!q || `${p.titulo} ${p.puesto} ${p.responsable}`.toLowerCase().includes(q.toLowerCase()));
   });
   const count = id => problemas.filter(p => p.estado === id).length;
+  const [showPareto, setShowPareto] = useState(false);
+  const [paretoBy, setParetoBy] = useState('puesto');
+  const paretoItems = Object.entries(problemas.reduce((m, p) => {
+    const k = (paretoBy === 'puesto' ? p.puesto : paretoBy === 'tipo' ? p.tipo : paretoBy === 'severidad' ? p.severidad : [p.modelo, p.capacidad, p.linea].filter(Boolean).join(' ')) || 'Sin dato';
+    m[k] = (m[k] || 0) + 1; return m;
+  }, {})).map(([label, n]) => ({ label, n }));
 
   return (
     <div className="screen problemas-screen">
@@ -67,6 +109,17 @@ function Lista({ problemas, onOpen, onNew, onBack, status }) {
           </select>
         </div>
 
+        <button className="ghost-btn" style={{ alignSelf: 'flex-start' }} onClick={() => setShowPareto(!showPareto)}>📊 {showPareto ? 'Ocultar' : 'Ver'} Pareto de problemas</button>
+        {showPareto && (
+          <div className="card form-card">
+            <label>Agrupar por
+              <select value={paretoBy} onChange={e => setParetoBy(e.target.value)}>
+                <option value="puesto">Puesto</option><option value="tipo">Tipo</option><option value="severidad">Severidad</option><option value="linea">Línea</option>
+              </select>
+            </label>
+            <ParetoChart items={paretoItems} />
+          </div>
+        )}
         {shown.length === 0 ? (
           <div className="card prob-empty">
             <p style={{ fontSize: '2rem' }}>🔎</p>
@@ -100,12 +153,13 @@ function Lista({ problemas, onOpen, onNew, onBack, status }) {
 
 /* ───────────── Detalle ───────────── */
 const TABS = [
-  ['resumen', '📋 Resumen'], ['porques', '❓ 5 Porqués'], ['ishikawa', '🐟 Ishikawa'],
+  ['resumen', '📋 Resumen'], ['esno', '⚖ Es / No es'], ['w2h', '🧭 5W2H'], ['porques', '❓ 5 Porqués'],
+  ['ishikawa', '🐟 Ishikawa'], ['pareto', '📊 Pareto'], ['d8', '8️⃣ 8D'],
   ['acciones', '🛠 Acciones'], ['comentarios', '💬 Comentarios'],
 ];
 
 function Detalle({ problema, onBack, onDeleted, isNew }) {
-  const [p, setP] = useState(problema);
+  const [p, setP] = useState(() => withDefaults(problema));
   const [dirty, setDirty] = useState(isNew);
   const [remoteNew, setRemoteNew] = useState(false);
   const [tab, setTab] = useState('resumen');
@@ -116,7 +170,7 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
   // Si otra persona actualiza y no hay cambios míos sin guardar, se refleja al instante.
   useEffect(() => {
     if (problema.actualizado === p.actualizado) return;
-    if (!dirty) setP(problema); else setRemoteNew(true);
+    if (!dirty) setP(withDefaults(problema)); else setRemoteNew(true);
   }, [problema.actualizado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = patch => { setP(x => ({ ...x, ...patch })); setDirty(true); };
@@ -158,6 +212,15 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
     if (causas.length) {
       if (y > 250) { doc.addPage(); y = m; }
       doc.setFont('helvetica', 'bold'); doc.text('Ishikawa (6M)', m, y); y += 2; body(causas); y = doc.lastAutoTable.finalY + 6;
+    }
+    const extra = [];
+    ESNO_DIM.forEach(d => { if (p.esno[d.id].es || p.esno[d.id].no) extra.push([`Es/No es · ${d.label}`, `ES: ${p.esno[d.id].es || '-'}\nNO ES: ${p.esno[d.id].no || '-'}`]); });
+    Object.entries(p.w2h).forEach(([k, v]) => { if (v) extra.push([`5W2H · ${k}`, v]); });
+    if (p.pareto.length) extra.push(['Pareto', [...p.pareto].sort((a, b) => b.n - a.n).map(x => `${x.cat}: ${x.n}`).join(' | ')]);
+    [['d1', 'D1 Equipo'], ['escape', 'D4 Punto de escape'], ['d5', 'D5 Correctivas'], ['d6', 'D6 Validación'], ['d7', 'D7 Prevención'], ['d8', 'D8 Cierre']].forEach(([k, l]) => { if (p.d8[k]) extra.push([l, p.d8[k]]); });
+    if (extra.length) {
+      if (y > 230) { doc.addPage(); y = m; }
+      doc.setFont('helvetica', 'bold'); doc.text('Otras herramientas de análisis', m, y); y += 2; body(extra); y = doc.lastAutoTable.finalY + 6;
     }
     if (p.acciones.length) {
       if (y > 240) { doc.addPage(); y = m; }
@@ -286,6 +349,103 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
           </>
         )}
 
+        {tab === 'esno' && (
+          <>
+            <Guia titulo="¿Cómo se usa Es / No es?">
+              <p>Sirve para <strong>acotar el problema</strong> antes de buscar causas: comparás dónde, cuándo y cuánto <em>sí</em> ocurre contra dónde podría ocurrir pero <em>no</em> ocurre. La causa suele estar en la diferencia.</p>
+              <ol>
+                <li>En cada fila (Qué, Dónde, Cuándo, Cuánto) escribí qué <strong>ES</strong> afectado.</li>
+                <li>En la otra columna anotá qué <strong>NO ES</strong> afectado pero sería razonable que lo estuviera (otro puesto, otro turno, otro modelo).</li>
+                <li>Mirá las diferencias: ¿qué cambió entre lo que falla y lo que no? Eso orienta el Ishikawa y los 5 Porqués.</li>
+              </ol>
+              <p><strong>Ejemplo:</strong> Dónde → ES: unidades del turno tarde en línea IDU · NO ES: turno mañana ni línea ODU. Pista: algo propio del turno tarde (herramienta, lote, temperatura).</p>
+            </Guia>
+            <div className="card form-card">
+              {ESNO_DIM.map(d => (
+                <div className="esno-row" key={d.id}>
+                  <strong className="esno-dim">{d.label}</strong>
+                  <label>ES<textarea rows={2} value={p.esno[d.id].es} onChange={e => set({ esno: { ...p.esno, [d.id]: { ...p.esno[d.id], es: e.target.value } } })} placeholder={d.ph} /></label>
+                  <label>NO ES<textarea rows={2} value={p.esno[d.id].no} onChange={e => set({ esno: { ...p.esno, [d.id]: { ...p.esno[d.id], no: e.target.value } } })} placeholder="Podría ocurrir pero no ocurre" /></label>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === 'w2h' && (
+          <>
+            <Guia titulo="¿Cómo se usa 5W2H?">
+              <p>Describe el problema o la acción respondiendo 7 preguntas, para que <strong>nadie interprete cosas distintas</strong>. Se usa para definir bien el problema o para detallar una solución.</p>
+              <ol>
+                <li><strong>What</strong> (Qué) · <strong>Why</strong> (Por qué importa) · <strong>Where</strong> (Dónde) · <strong>When</strong> (Cuándo) · <strong>Who</strong> (Quién) · <strong>How</strong> (Cómo) · <strong>How much</strong> (Cuánto: cantidad, costo, impacto).</li>
+                <li>Contestá con datos concretos, no con generalidades.</li>
+                <li>Si una respuesta es &ldquo;no sé&rdquo;, es una tarea de investigación pendiente: pasala al plan de acción.</li>
+              </ol>
+            </Guia>
+            <div className="card form-card">
+              {[['que', 'What · ¿Qué pasa?'], ['porque', 'Why · ¿Por qué es un problema?'], ['donde', 'Where · ¿Dónde ocurre?'], ['cuando', 'When · ¿Cuándo / con qué frecuencia?'], ['quien', 'Who · ¿Quién lo detecta / lo afecta?'], ['como', 'How · ¿Cómo se manifiesta?'], ['cuanto', 'How much · ¿Cuánto (cantidad / costo)?']].map(([k, l]) => (
+                <label key={k}>{l}<textarea rows={2} value={p.w2h[k]} onChange={e => set({ w2h: { ...p.w2h, [k]: e.target.value } })} /></label>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === 'pareto' && (
+          <>
+            <Guia titulo="¿Cómo se usa Pareto?">
+              <p>Muestra que <strong>pocas causas generan la mayoría del problema</strong> (regla 80/20), para que ataques primero lo que más pesa.</p>
+              <ol>
+                <li>Definí las categorías (tipos de defecto, causas, paradas, etc.) y cargá <strong>cuántas veces</strong> ocurrió cada una en un período.</li>
+                <li>El gráfico ordena de mayor a menor y dibuja el % acumulado.</li>
+                <li>Las barras que llegan hasta cerca del 80% son tus prioridades: enfocá el análisis y las acciones ahí.</li>
+                <li>Repetí después de aplicar acciones para confirmar que bajó.</li>
+              </ol>
+              <p><strong>Ejemplo:</strong> Pérdida de aceite 18 · Rayado 5 · Falta de tornillo 3 · Otros 2. Con una sola causa explicás más del 60%.</p>
+              <p className="hint">Para ver un Pareto de <em>todos</em> los problemas (por puesto, tipo o línea), usá el botón 📊 de la lista.</p>
+            </Guia>
+            <div className="card form-card">
+              {p.pareto.map(it => (
+                <div className="ishi-row" key={it.id}>
+                  <input value={it.cat} onChange={e => set({ pareto: p.pareto.map(x => (x.id === it.id ? { ...x, cat: e.target.value } : x)) })} placeholder="Categoría (ej: Pérdida de aceite)" />
+                  <input type="number" min="0" value={it.n} onChange={e => set({ pareto: p.pareto.map(x => (x.id === it.id ? { ...x, n: e.target.value } : x)) })} placeholder="Cant." style={{ maxWidth: 90 }} />
+                  <button className="take-del" onClick={() => set({ pareto: p.pareto.filter(x => x.id !== it.id) })}>✕</button>
+                </div>
+              ))}
+              <button className="ghost-btn" onClick={() => set({ pareto: [...p.pareto, { id: genId(), cat: '', n: '' }] })}>+ Agregar categoría</button>
+              <ParetoChart items={p.pareto.map(x => ({ label: x.cat || '—', n: parseFloat(x.n) || 0 }))} />
+            </div>
+          </>
+        )}
+
+        {tab === 'd8' && (
+          <>
+            <Guia titulo="¿Cómo se usa el 8D?">
+              <p>Es el reporte formal de resolución de problemas (el que suelen pedir clientes y calidad). Ordena todo el trabajo en 8 disciplinas. Varias se completan solas con lo que ya cargaste.</p>
+              <ol>
+                <li><strong>D1 Equipo:</strong> quiénes trabajan el problema.</li>
+                <li><strong>D2 Descripción:</strong> qué pasa (usa la Descripción del Resumen; el Es / No es y 5W2H ayudan).</li>
+                <li><strong>D3 Contención:</strong> acción inmediata para proteger al cliente.</li>
+                <li><strong>D4 Causa raíz:</strong> con 5 Porqués/Ishikawa; indicá también por qué no se detectó (punto de escape).</li>
+                <li><strong>D5 Acciones correctivas:</strong> las elegidas para eliminar la causa (ver Acciones).</li>
+                <li><strong>D6 Implementación y validación:</strong> evidencia de que funcionan.</li>
+                <li><strong>D7 Prevención:</strong> cómo evitar que vuelva en otros puestos/modelos (estándares, hojas de proceso).</li>
+                <li><strong>D8 Cierre:</strong> reconocimiento al equipo y lecciones aprendidas.</li>
+              </ol>
+            </Guia>
+            <div className="card form-card">
+              <label>D1 · Equipo<textarea rows={2} value={p.d8.d1} onChange={e => set({ d8: { ...p.d8, d1: e.target.value } })} placeholder="Nombres y roles" /></label>
+              <label>D2 · Descripción del problema<textarea rows={2} value={p.descripcion} onChange={e => set({ descripcion: e.target.value })} /></label>
+              <label>D3 · Contención inmediata<textarea rows={2} value={p.contencion} onChange={e => set({ contencion: e.target.value })} /></label>
+              <label>D4 · Causa raíz<textarea rows={2} value={p.causaRaiz} onChange={e => set({ causaRaiz: e.target.value })} /></label>
+              <label>D4 · Punto de escape (¿por qué no se detectó?)<textarea rows={2} value={p.d8.escape} onChange={e => set({ d8: { ...p.d8, escape: e.target.value } })} /></label>
+              <label>D5 · Acciones correctivas permanentes<textarea rows={2} value={p.d8.d5} onChange={e => set({ d8: { ...p.d8, d5: e.target.value } })} placeholder={p.acciones.length ? `Plan de acción: ${p.acciones.length} acciones cargadas` : 'Ver pestaña Acciones'} /></label>
+              <label>D6 · Implementación y validación<textarea rows={2} value={p.d8.d6} onChange={e => set({ d8: { ...p.d8, d6: e.target.value } })} /></label>
+              <label>D7 · Prevención de recurrencia<textarea rows={2} value={p.d8.d7} onChange={e => set({ d8: { ...p.d8, d7: e.target.value } })} /></label>
+              <label>D8 · Cierre y reconocimiento<textarea rows={2} value={p.d8.d8} onChange={e => set({ d8: { ...p.d8, d8: e.target.value } })} /></label>
+            </div>
+          </>
+        )}
+
         {tab === 'acciones' && (
           <>
             <Guia titulo="¿Cómo se usa el plan de acción?">
@@ -313,10 +473,33 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
                       </select>
                       <button className="take-del" onClick={() => set({ acciones: p.acciones.filter(x => x.id !== a.id) })}>✕</button>
                     </div>
+                    <div className="act-row2">
+                      <label>Impacto<select value={a.impacto || ''} onChange={e => upd({ impacto: e.target.value })}><option value="">—</option><option value="alto">Alto</option><option value="bajo">Bajo</option></select></label>
+                      <label>Esfuerzo<select value={a.esfuerzo || ''} onChange={e => upd({ esfuerzo: e.target.value })}><option value="">—</option><option value="bajo">Bajo</option><option value="alto">Alto</option></select></label>
+                    </div>
                   </div>
                 );
               })}
-              <button className="ghost-btn" onClick={() => set({ acciones: [...p.acciones, { id: genId(), desc: '', resp: '', fecha: '', estado: 'pendiente' }] })}>+ Agregar acción</button>
+              <button className="ghost-btn" onClick={() => set({ acciones: [...p.acciones, { id: genId(), desc: '', resp: '', fecha: '', estado: 'pendiente', impacto: '', esfuerzo: '' }] })}>+ Agregar acción</button>
+            </div>
+            <Guia titulo="¿Cómo se usa la matriz impacto / esfuerzo?">
+              <p>Te ayuda a decidir <strong>por cuál acción empezar</strong> cuando hay varias.</p>
+              <ol>
+                <li>A cada acción asignale Impacto (cuánto reduce el problema) y Esfuerzo (tiempo, costo, complejidad).</li>
+                <li>Hacé primero los <strong>Quick wins</strong> (alto impacto, bajo esfuerzo).</li>
+                <li>Planificá los <strong>Proyectos grandes</strong> (alto impacto, alto esfuerzo) con responsable y fecha.</li>
+                <li>Los <strong>Rellenos</strong> se hacen si sobra tiempo; lo de <strong>Evitar</strong> (bajo impacto, alto esfuerzo) conviene descartarlo.</li>
+              </ol>
+            </Guia>
+            <div className="matriz">
+              {[['alto', 'bajo', '⚡ Quick wins', 'ok'], ['alto', 'alto', '🏗 Proyectos grandes', 'blue'], ['bajo', 'bajo', '🧩 Rellenos', 'gray'], ['bajo', 'alto', '🚫 Evitar', 'over']].map(([imp, esf, label, c]) => (
+                <div key={label} className={`mcell ${c}`}>
+                  <strong>{label}</strong>
+                  <div className="mchips">
+                    {p.acciones.map((a, i) => (a.impacto === imp && a.esfuerzo === esf ? <span key={a.id} title={a.desc}>#{i + 1} {a.desc.slice(0, 22) || 'sin desc.'}</span> : null))}
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         )}
