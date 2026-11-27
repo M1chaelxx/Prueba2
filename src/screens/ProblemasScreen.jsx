@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import MediaPicker from '../components/MediaPicker';
+import { addProblemaHandler } from '../utils/uploadQueue';
 import { exportProblemaPdf, TOOL_LABELS } from '../utils/problemaPdf';
 import { genId } from '../utils/id';
 import { firebaseReady } from '../firebase';
@@ -226,6 +227,13 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
   }, [problema.actualizado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = patch => { setP(x => ({ ...x, ...patch })); setDirty(true); };
+
+  // Archivos que terminan de subir mientras este problema está abierto
+  useEffect(() => addProblemaHandler((id, item) => {
+    if (id !== problema.id) return false;
+    setP(x => ({ ...x, media: [...(x.media || []), item] })); setDirty(true);
+    return true;
+  }), [problema.id]);
   const flash = t => { setToast(t); setTimeout(() => setToast(''), 2500); };
 
   const setUserName = v => { setUser(v); try { localStorage.setItem('usuario', v); } catch { /* ignore */ } };
@@ -293,7 +301,7 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
             </div>
             <div className="card form-card">
               <strong>📎 Evidencia (fotos y videos)</strong>
-              <MediaPicker items={p.media || []} onChange={items => set({ media: items })} hint="Fotos del defecto, de la pieza o del puesto, y videos cortos de la falla." />
+              <MediaPicker target={{ type: 'problema', id: p.id }} items={p.media || []} onChange={items => set({ media: items })} hint="Fotos del defecto, de la pieza o del puesto, y videos cortos de la falla." />
             </div>
             {p.medicion && (
               <div className="card medicion-card">

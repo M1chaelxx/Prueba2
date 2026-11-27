@@ -1,4 +1,4 @@
-import { Component, useState } from 'react';
+import { Component, useEffect, useRef, useState } from 'react';
 import HomeScreen from './screens/HomeScreen';
 import InstructivoScreen from './screens/InstructivoScreen';
 import SetupScreen from './screens/SetupScreen';
@@ -6,6 +6,9 @@ import PuestosEditor from './screens/PuestosEditor';
 import StudyScreen from './screens/StudyScreen';
 import ResultsScreen from './screens/ResultsScreen';
 import ProblemasScreen from './screens/ProblemasScreen';
+import UploadTray from './components/UploadTray';
+import { setPuestoHandler } from './utils/uploadQueue';
+import { getMedia } from './utils/cloudinary';
 
 class ErrorBoundary extends Component {
   state = { error: null };
@@ -32,7 +35,17 @@ function Main() {
   const [result, setResult] = useState(null);
   const [fromSaved, setFromSaved] = useState(false);
   const [prefill, setPrefill] = useState(null); // problema nuevo precargado desde Resultados
-  const [draft, setDraft] = useState(null); // mediciones en curso (sobreviven a volver a Config)
+  const [draft, setDraft] = useState(null);
+  const studyRef = useRef(null); studyRef.current = study;
+
+  // Cuando una subida termina (aunque estés en otra pantalla), el archivo se agrega a su puesto
+  useEffect(() => {
+    setPuestoHandler((puestoId, item) => {
+      if (!studyRef.current?.puestos.some(p => p.id === puestoId)) return false;
+      setStudy(s => (s ? { ...s, puestos: s.puestos.map(p => (p.id === puestoId ? { ...p, imagen: null, media: [...getMedia(p), item] } : p)) } : s));
+      return true;
+    });
+  }, []); // mediciones en curso (sobreviven a volver a Config)
 
   if (screen === 'home') {
     return (
@@ -76,6 +89,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Main />
+      <UploadTray />
     </ErrorBoundary>
   );
 }

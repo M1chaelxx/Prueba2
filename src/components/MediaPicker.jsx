@@ -1,52 +1,61 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MediaViewer from './MediaViewer';
-import { uploadMedia, thumbSrc, resizeImage, blobToDataUrl, isLocalMedia, MAX_VIDEO_MB } from '../utils/cloudinary';
-import { genId } from '../utils/id';
+import { thumbSrc, isLocalMedia, MAX_VIDEO_MB } from '../utils/cloudinary';
+import { QUALITIES, getQuality, setQuality } from '../utils/videoCompress';
+import { enqueue, retry, cancel, registerView, useUploads } from '../utils/uploadQueue';
+
+export const jobLabel = j => {
+  if (j.status === 'queued') return 'En cola…';
+  if (j.status === 'compressing') return `🗜 Comprimiendo ${j.name}`;
+  if (j.status === 'uploading') return `⬆ Subiendo ${j.name}`;
+  if (j.status === 'waiting') return `📡 Sin conexión · ${j.name}`;
+  if (j.status === 'done') return `✓ Listo · ${j.name}`;
+  return `⚠ ${j.name}`;
+};
+
+export function JobRow({ j }) {
+  const bar = ['compressing', 'uploading'].includes(j.status);
+  return (
+    <div className={`media-busy job-${j.status}`}>
+      <div className="job-top">
+        <span className="job-name">{jobLabel(j)}{bar ? ` · ${j.pct}%` : ''}</span>
+        <span className="job-actions">
+          {['waiting', 'error'].includes(j.status) && <button type="button" onClick={() => retry(j.id)}>↻ Reintentar</button>}
+          {j.status !== 'done' && <button type="button" onClick={() => cancel(j.id)} aria-label="Cancelar">✕</button>}
+        </span>
+      </div>
+      {bar && <div className="progress-bar"><div className="progress-fill" style={{ width: `${j.pct}%` }} /></div>}
+      {j.status === 'waiting' && <small>Se reintenta sola cuando vuelva la conexión.</small>}
+      {j.status === 'error' && <small>{j.error}</small>}
+      {j.warning && <small>{j.warning}</small>}
+    </div>
+  );
+}
 
 // Fotos y videos de un puesto o de un problema. items = [{id, tipo, url, nombre}]
-export default function MediaPicker({ items, onChange, hint }) {
-  const [busy, setBusy] = useState([]); // [{id, name, pct}]
-  const [error, setError] = useState('');
+// Las subidas van a una cola global: siguen aunque cambies de pantalla.
+export default function MediaPicker({ items, onChange, target, hint }) {
   const [view, setView] = useState(null);
+  const [quality, setQ] = useState(getQuality);
+  const { jobs } = useUploads();
   const refs = { gal: useRef(null), cam: useRef(null), vid: useRef(null), rec: useRef(null) };
-  const itemsRef = useRef(items); itemsRef.current = items;
+  const tKey = `${target.type}:${target.id}`;
+  const mine = jobs.filter(j => `${j.target.type}:${j.target.id}` === tKey);
 
-  const handle = async e => {
+  useEffect(() => registerView(target), [tKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handle = e => {
     const files = [...(e.target.files || [])];
     e.target.value = '';
-    setError('');
-    for (const file of files) {
-      const id = genId();
-      setBusy(b => [...b, { id, name: file.name || 'archivo', pct: 0, stage: 'upload' }]);
-      try {
-        const m = await uploadMedia(
-          file,
-          pct => setBusy(b => b.map(x => (x.id === id ? { ...x, pct } : x))),
-          stage => setBusy(b => b.map(x => (x.id === id ? { ...x, stage, pct: 0 } : x)))
-        );
-        onChange([...itemsRef.current, m]); itemsRef.current = [...itemsRef.current, m];
-      } catch (err) {
-        if (file.type.startsWith('image/')) {
-          // Sin conexión: la foto queda en este dispositivo (no se sincroniza con el equipo)
-          try {
-            const small = await resizeImage(file, 1400, 0.8);
-            const m = { id: genId(), tipo: 'image', url: await blobToDataUrl(small), nombre: file.name || '' };
-            onChange([...itemsRef.current, m]); itemsRef.current = [...itemsRef.current, m];
-            setError(`No se pudo subir a la nube (${err.message}). La foto quedó solo en este dispositivo.`);
-          } catch { setError(err.message); }
-        } else setError(err.message);
-      }
-      setBusy(b => b.filter(x => x.id !== id));
-    }
+    if (files.length) enqueue(files, target, quality);
   };
-
-  const remove = id => onChange(items.filter(m => m.id !== id));
+  const pickQuality = q => { setQ(q); setQuality(q); };
 
   return (
     <div className="media-picker">
       <input ref={refs.gal} type="file" accept="image/*" multiple hidden onChange={handle} />
       <input ref={refs.cam} type="file" accept="image/*" capture="environment" hidden onChange={handle} />
-      <input ref={refs.vid} type="file" accept="video/*" hidden onChange={handle} />
+      <input ref={refs.vid} type="file" accept="video/*" multiple hidden onChange={handle} />
       <input ref={refs.rec} type="file" accept="video/*" capture="environment" hidden onChange={handle} />
 
       <div className="media-btns">
@@ -55,15 +64,18 @@ export default function MediaPicker({ items, onChange, hint }) {
         <button type="button" className="ghost-btn" onClick={() => refs.vid.current.click()}>🎞 Video (galería)</button>
         <button type="button" className="ghost-btn" onClick={() => refs.rec.current.click()}>🎥 Grabar video</button>
       </div>
-      <p className="hint">{hint || `Videos de hasta ${MAX_VIDEO_MB} MB (conviene clips cortos de 20 a 40 s).`}</p>
 
-      {busy.map(b => (
-        <div className="media-busy" key={b.id}>
-          <span>{b.stage === 'compress' ? '🗜 Comprimiendo video (puede tardar un poco)…' : `⬆ Subiendo ${b.name}…`} {b.pct}%</span>
-          <div className="progress-bar"><div className="progress-fill" style={{ width: `${b.pct}%` }} /></div>
+      <div className="quality-row">
+        <span className="quality-lbl">Calidad de video</span>
+        <div className="quality-seg" role="group" aria-label="Calidad de video">
+          {Object.entries(QUALITIES).map(([k, q]) => (
+            <button type="button" key={k} className={quality === k ? 'sel' : ''} onClick={() => pickQuality(k)}>{q.label}</button>
+          ))}
         </div>
-      ))}
-      {error && <p className="media-error">⚠ {error}</p>}
+      </div>
+      <p className="hint">{QUALITIES[quality].hint}. {hint || `Máximo ${MAX_VIDEO_MB} MB por video. Podés seguir trabajando mientras sube.`}</p>
+
+      {mine.map(j => <JobRow key={j.id} j={j} />)}
 
       {items.length > 0 && (
         <div className="media-grid">
@@ -76,7 +88,7 @@ export default function MediaPicker({ items, onChange, hint }) {
                 {m.tipo === 'video' && <span className="media-play">▶</span>}
               </button>
               {isLocalMedia(m) && <span className="media-local" title="Solo en este dispositivo">📵</span>}
-              <button type="button" className="media-del" onClick={() => remove(m.id)} aria-label="Quitar">✕</button>
+              <button type="button" className="media-del" onClick={() => onChange(items.filter(x => x.id !== m.id))} aria-label="Quitar">✕</button>
             </div>
           ))}
         </div>

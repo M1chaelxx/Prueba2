@@ -91,3 +91,14 @@ export async function addComentario(id, autor, texto) {
   }
   await updateDoc(doc(db, COL, id), { comentarios: arrayUnion(c), actualizado: Date.now() });
 }
+
+// Agrega un archivo ya subido a un problema guardado (cuando la subida termina con la pantalla cerrada)
+export async function addMediaToProblema(id, item) {
+  if (!firebaseReady) {
+    const list = readLS();
+    if (!list.some(x => x.id === id)) return false;
+    writeLS(list.map(x => (x.id === id ? { ...x, media: [...(x.media || []), item], actualizado: Date.now() } : x)));
+    return true;
+  }
+  try { await updateDoc(doc(db, COL, id), { media: arrayUnion(clean(item)), actualizado: Date.now() }); return true; } catch { return false; }
+}

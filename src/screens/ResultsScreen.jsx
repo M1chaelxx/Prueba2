@@ -3,6 +3,7 @@ import { fmtTimer, fmtDate, fmtClock } from '../utils/timer';
 import { saveStudy } from '../utils/sync';
 import { cloudOnly, getMedia } from '../utils/cloudinary';
 import MediaStrip from '../components/MediaStrip';
+import { hasActiveUploads } from '../utils/uploadQueue';
 
 const normTakes = v => {
   if (!v) return [];
@@ -33,6 +34,7 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
 
   const saveAndExit = async () => {
     if (saving) return;
+    if (!alreadySaved && hasActiveUploads() && !window.confirm('Hay fotos o videos que todavía se están subiendo. Si guardás ahora, esos archivos no quedarán en el estudio. ¿Guardar igual?')) return;
     if (!alreadySaved) {
       setSaving(true);
       try {

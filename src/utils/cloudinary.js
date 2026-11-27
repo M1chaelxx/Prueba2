@@ -1,5 +1,5 @@
 import { genId } from './id';
-import { compressVideo, canCompressVideo, COMPRESS_MIN_MB } from './videoCompress';
+import { compressVideo, canCompressVideo, COMPRESS_MIN_MB, DEFAULT_QUALITY } from './videoCompress';
 
 // Cloud name y preset "unsigned" son datos públicos (no hay claves secretas en la app).
 export const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD || 'vgia9y4h';
@@ -45,7 +45,7 @@ export const thumbSrc = m => {
 };
 
 // Sube un archivo (foto o video). Devuelve un item de media listo para guardar.
-export function uploadMedia(file, onProgress, onStage) {
+export function uploadMedia(file, { onProgress, onStage, quality = DEFAULT_QUALITY, signal } = {}) {
   const isVideo = file.type.startsWith('video/');
   const limit = (isVideo ? MAX_VIDEO_MB : MAX_IMAGE_MB) * 1024 * 1024;
   return (async () => {
@@ -56,9 +56,9 @@ export function uploadMedia(file, onProgress, onStage) {
       if (canCompressVideo() && file.size > COMPRESS_MIN_MB * 1048576) {
         try {
           onStage?.('compress');
-          const small = await compressVideo(file, p => onProgress?.(p));
+          const small = await compressVideo(file, p => onProgress?.(p), quality, signal);
           if (small.size < file.size) body = small;
-        } catch (err) { console.warn('Compresión de video no disponible:', err); }
+        } catch (err) { if (err?.name === 'AbortError') throw err; console.warn('Compresión de video no disponible:', err); }
         onStage?.('upload');
       }
     } else body = await resizeImage(file);
@@ -66,7 +66,7 @@ export function uploadMedia(file, onProgress, onStage) {
       const tip = isVideo ? ' Grabá en 720p o un clip más corto.' : '';
       throw new Error(`El archivo pesa ${(body.size / 1048576).toFixed(0)} MB y el máximo es ${isVideo ? MAX_VIDEO_MB : MAX_IMAGE_MB} MB.${tip}`);
     }
-    return sendToCloudinary(body, file, isVideo, onProgress);
+    return sendToCloudinary(body, file, isVideo, onProgress, signal);
   })();
 }
 
@@ -78,8 +78,9 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 class NetworkError extends Error {}
 
 // Un POST. Rechaza con NetworkError si no hubo respuesta (corte, bloqueo, timeout).
-function post(blob, name, headers, onBytes) {
+function post(blob, name, headers, onBytes, signal) {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(new DOMException('Cancelado', 'AbortError'));
     const fd = new FormData();
     fd.append('file', blob, name);
     fd.append('upload_preset', UPLOAD_PRESET);
@@ -95,6 +96,7 @@ function post(blob, name, headers, onBytes) {
       try { j = JSON.parse(xhr.responseText); } catch { /* ignore */ }
       resolve({ status: xhr.status, json: j });
     };
+    signal?.addEventListener('abort', () => { xhr.abort(); reject(new DOMException('Cancelado', 'AbortError')); }, { once: true });
     xhr.send(fd);
   });
 }
@@ -116,14 +118,14 @@ function toItem(j, file) {
 }
 function apiError(r) { return new Error(r.json?.error?.message || `Cloudinary rechazó el archivo (código ${r.status}).`); }
 
-async function sendToCloudinary(body, file, isVideo, onProgress) {
+async function sendToCloudinary(body, file, isVideo, onProgress, signal) {
   const name = body.name || file.name || (isVideo ? 'video.mp4' : 'foto.jpg');
   const total = body.size;
   const mb = (total / 1048576).toFixed(1);
 
   // Archivos chicos: un solo envío (con reintentos)
   const single = async () => {
-    const r = await withRetry(() => post(body, name, null, loaded => onProgress?.(Math.round((loaded / total) * 100))));
+    const r = await withRetry(() => post(body, name, null, loaded => onProgress?.(Math.round((loaded / total) * 100)), signal));
     if (r.status >= 200 && r.status < 300 && r.json.secure_url) return toItem(r.json, file);
     throw apiError(r);
   };
@@ -138,7 +140,7 @@ async function sendToCloudinary(body, file, isVideo, onProgress) {
       const end = Math.min(start + CHUNK, total);
       const part = body.slice(start, end);
       const headers = { 'X-Unique-Upload-Id': uid, 'Content-Range': `bytes ${start}-${end - 1}/${total}` };
-      const r = await withRetry(() => post(part, name, headers, loaded => onProgress?.(Math.round(((sent + loaded) / total) * 100))));
+      const r = await withRetry(() => post(part, name, headers, loaded => onProgress?.(Math.round(((sent + loaded) / total) * 100)), signal));
       if (r.status < 200 || r.status >= 300) throw apiError(r);
       sent = end; last = r.json;
       onProgress?.(Math.round((sent / total) * 100));
@@ -152,9 +154,11 @@ async function sendToCloudinary(body, file, isVideo, onProgress) {
       try { return await single(); } catch (e2) { if (!(e2 instanceof NetworkError)) throw e2; }
     }
     const online = typeof navigator !== 'undefined' && navigator.onLine === false;
-    throw new Error(online
-      ? 'El dispositivo no tiene internet. Conectate y volvé a intentar.'
+    const err = new Error(online
+      ? 'El dispositivo no tiene internet. Se reintentará al volver la conexión.'
       : `No se pudo conectar con Cloudinary tras varios intentos (archivo de ${mb} MB). Probá con otra red (datos móviles o Wi-Fi distinto): algunas redes de empresa bloquean api.cloudinary.com.`);
+    err.network = true;
+    throw err;
   }
 }
 

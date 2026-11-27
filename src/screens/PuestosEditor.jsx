@@ -152,7 +152,7 @@ export default function PuestosEditor({ study, onChange, onBack, onStart }) {
             <div className="detail-section">
               <div className="section-header">📷 Fotos y videos de referencia ({getMedia(sel).length})</div>
               <div style={{ padding: '12px 16px' }}>
-                <MediaPicker items={getMedia(sel)} onChange={items => updatePuesto(sel.id, { media: items, imagen: null })} />
+                <MediaPicker target={{ type: 'puesto', id: sel.id }} items={getMedia(sel)} onChange={items => updatePuesto(sel.id, { media: items, imagen: null })} />
               </div>
             </div>
 
