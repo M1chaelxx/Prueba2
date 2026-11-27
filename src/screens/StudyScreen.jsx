@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import TimerDisplay from '../components/TimerDisplay';
+import MediaViewer from '../components/MediaViewer';
+import { getMedia, thumbSrc } from '../utils/cloudinary';
 import { fmtTimer } from '../utils/timer';
 
 const emptyTimer = { elapsed: 0, startAt: null, running: false };
@@ -203,9 +205,9 @@ export default function StudyScreen({ study, draft, onDraft, onBack, onResults }
               : `${selDone}/${sel.acciones.length} acciones`}
           </span>
         </div>
-        {sel.imagen && (
+        {getMedia(sel).length > 0 && (
           <button className="img-mini" onClick={() => setShowImg(true)}>
-            <img src={sel.imagen} alt="" /> Ver referencia
+            <img src={getMedia(sel)[0].url?.startsWith('data:') ? getMedia(sel)[0].url : thumbSrc(getMedia(sel)[0])} alt="" /> Ver referencia ({getMedia(sel).length})
           </button>
         )}
       </div>
@@ -428,10 +430,8 @@ export default function StudyScreen({ study, draft, onDraft, onBack, onResults }
         </button>
       </footer>
 
-      {showImg && sel.imagen && (
-        <div className="img-modal" onClick={() => setShowImg(false)}>
-          <img src={sel.imagen} alt="Referencia ampliada" />
-        </div>
+      {showImg && getMedia(sel).length > 0 && (
+        <MediaViewer items={getMedia(sel)} onClose={() => setShowImg(false)} />
       )}
     </div>
   );

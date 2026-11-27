@@ -3,13 +3,14 @@ import {
   onSnapshot, query, orderBy, limit,
 } from 'firebase/firestore';
 import { db, firebaseReady } from '../firebase';
+import { cloudOnly } from './cloudinary';
 
 const COL = 'toma-tiempos';
 const TEMPLATES_COL = 'puesto-templates';
 
 const stripImages = study => ({
   ...study,
-  puestos: (study.puestos || []).map(p => ({ ...p, imagen: null })),
+  puestos: (study.puestos || []).map(p => ({ ...p, imagen: null, media: cloudOnly(p.media) })),
 });
 
 // Returns unsubscribe function, or null if Firebase not available
@@ -47,7 +48,9 @@ export async function deleteStudy(id) {
 }
 
 // Plantillas de puestos
-export async function savePuestoTemplate(modelo, nombre, puestos) {
+export async function savePuestoTemplate(modelo, nombre, puestosRaw) {
+  // Sin fotos en base64 (el límite de Firestore es 1 MB por documento); solo links a la nube
+  const puestos = (puestosRaw || []).map(p => ({ ...p, imagen: null, media: cloudOnly(p.media) }));
   if (!firebaseReady) {
     const all = readLS(LS_TPL, {});
     all[modelo] = [...(all[modelo] || []).filter(t => t.nombre !== nombre), { nombre, puestos, timestamp: Date.now() }];

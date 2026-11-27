@@ -1,6 +1,7 @@
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db, firebaseReady } from '../firebase';
 import { genId } from './id';
+import { cloudOnly } from './cloudinary';
 
 const COL = 'problemas';
 const LS = 'problemas-local';
@@ -33,7 +34,7 @@ export const ESNO_DIM = [
 // Completa campos nuevos en problemas guardados antes de que existieran
 export function withDefaults(p) {
   const d = newProblema();
-  return { ...d, ...p, w2h: { ...d.w2h, ...p.w2h }, d8: { ...d.d8, ...p.d8 }, esno: { ...d.esno, ...p.esno }, ishikawa: { ...d.ishikawa, ...p.ishikawa }, pareto: p.pareto || [] };
+  return { ...d, ...p, w2h: { ...d.w2h, ...p.w2h }, d8: { ...d.d8, ...p.d8 }, esno: { ...d.esno, ...p.esno }, ishikawa: { ...d.ishikawa, ...p.ishikawa }, pareto: p.pareto || [], media: p.media || [] };
 }
 
 export function newProblema(base = {}) {
@@ -49,6 +50,7 @@ export function newProblema(base = {}) {
     porques: [''], causaRaiz: '',
     ishikawa: Object.fromEntries(CATEGORIAS_6M.map(c => [c, []])),
     pareto: [],
+    media: [],
     w2h: { que: '', porque: '', donde: '', cuando: '', quien: '', como: '', cuanto: '' },
     esno: Object.fromEntries(ESNO_DIM.map(d => [d.id, { es: '', no: '' }])),
     d8: { d1: '', escape: '', d5: '', d6: '', d7: '', d8: '' },
@@ -69,9 +71,10 @@ export function subscribeProblemas(cb, onErr) {
 }
 
 export async function saveProblema(p) {
-  const data = clean({ ...p, actualizado: Date.now() });
-  if (!firebaseReady) { writeLS([data, ...readLS().filter(x => x.id !== p.id)]); return; }
-  await setDoc(doc(db, COL, p.id), data);
+  if (!firebaseReady) {
+    const data = clean({ ...p, actualizado: Date.now() }); writeLS([data, ...readLS().filter(x => x.id !== p.id)]); return; }
+  // En la nube solo viajan links (las fotos guardadas solo en el dispositivo no se sincronizan)
+  await setDoc(doc(db, COL, p.id), clean({ ...p, media: cloudOnly(p.media), actualizado: Date.now() }));
 }
 
 export async function deleteProblema(id) {

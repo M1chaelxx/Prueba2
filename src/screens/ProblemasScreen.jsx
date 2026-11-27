@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import MediaPicker from '../components/MediaPicker';
 import { exportProblemaPdf, TOOL_LABELS } from '../utils/problemaPdf';
 import { genId } from '../utils/id';
 import { firebaseReady } from '../firebase';
@@ -289,6 +290,10 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
                 <label>Detectado en<input value={p.detectadoEn} onChange={e => set({ detectadoEn: e.target.value })} placeholder="Ej: Prueba de estanqueidad" /></label>
               </div>
               <label>Contención inmediata<textarea rows={2} value={p.contencion} onChange={e => set({ contencion: e.target.value })} placeholder="Qué se hizo para que no siga pasando mientras se analiza" /></label>
+            </div>
+            <div className="card form-card">
+              <strong>📎 Evidencia (fotos y videos)</strong>
+              <MediaPicker items={p.media || []} onChange={items => set({ media: items })} hint="Fotos del defecto, de la pieza o del puesto, y videos cortos de la falla." />
             </div>
             {p.medicion && (
               <div className="card medicion-card">

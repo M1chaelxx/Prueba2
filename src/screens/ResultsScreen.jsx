@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fmtTimer, fmtDate, fmtClock } from '../utils/timer';
 import { saveStudy } from '../utils/sync';
+import { cloudOnly } from '../utils/cloudinary';
 
 const normTakes = v => {
   if (!v) return [];
@@ -37,7 +38,7 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
         await saveStudy({
           id: Date.now(),
           timestamp: new Date().toISOString(),
-          study: { ...study, puestos: study.puestos.map(p => ({ ...p, imagen: null })) },
+          study: { ...study, puestos: study.puestos.map(p => ({ ...p, imagen: null, media: cloudOnly(p.media) })) },
           result,
         });
       } catch {
@@ -100,7 +101,7 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
   const exportPdf = async () => {
     try {
       const { exportEstudioPdf } = await import('../utils/estudioPdf');
-      exportEstudioPdf({ study, rows, totals: { real: gReal, norm: gNorm, done: gDone, total: gTotal }, meds, normTakes, now });
+      await exportEstudioPdf({ study, rows, totals: { real: gReal, norm: gNorm, done: gDone, total: gTotal }, meds, normTakes, now });
       setExportMsg('✓ Exportación PDF completada');
     } catch (e) {
       console.error(e);

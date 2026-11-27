@@ -1,13 +1,27 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { fmtTimer, fmtDate, fmtClock } from './timer';
+import { getMedia, imageSrc, blobToDataUrl } from './cloudinary';
+
+// Descarga la primera foto de cada puesto para incluirla en el PDF (si falla, se omite)
+async function loadPuestoImage(puesto) {
+  const m = getMedia(puesto).find(x => x.tipo === 'image');
+  if (!m) return null;
+  if (m.url.startsWith('data:')) return m.url;
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+    const res = await fetch(imageSrc(m, 700).replace('f_auto', 'f_jpg'), { signal: ctl.signal }); clearTimeout(t);
+    return await blobToDataUrl(await res.blob());
+  } catch { return null; }
+}
 
 const NAVY = [11, 31, 74], BLUE = [37, 99, 235], LBLUE = [227, 237, 255], LIGHT = [243, 246, 251];
 const GREEN = [22, 163, 74], RED = [220, 38, 38], GRAY = [100, 116, 139], AMBER = [217, 119, 6];
 const M = 14, PW = 210, PH = 297;
 const clip = (t, n) => (t && t.length > n ? `${t.slice(0, n - 1)}…` : t || '');
 
-export function exportEstudioPdf({ study, rows, totals, meds, normTakes, now }) {
+export async function exportEstudioPdf({ study, rows, totals, meds, normTakes, now }) {
+  const imgs = await Promise.all(rows.map(r => loadPuestoImage(r.puesto)));
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const taktTime = study.taktTime || null;
   const modelo = `${study.modelo} ${study.capacidad}`;
@@ -108,13 +122,14 @@ export function exportEstudioPdf({ study, rows, totals, meds, normTakes, now }) 
 
     // Imagen de referencia (si el puesto la tiene)
     let imgW = 0;
-    if (r.puesto.imagen) {
+    const imgData = imgs[rows.indexOf(r)];
+    if (imgData) {
       try {
-        const fmt = /^data:image\/png/.test(r.puesto.imagen) ? 'PNG' : 'JPEG';
-        const p = doc.getImageProperties(r.puesto.imagen);
+        const fmt = /^data:image\/png/.test(imgData) ? 'PNG' : 'JPEG';
+        const p = doc.getImageProperties(imgData);
         const mw = 42, mh = 32, k = Math.min(mw / p.width, mh / p.height);
         imgW = p.width * k + 4;
-        doc.addImage(r.puesto.imagen, fmt, PW - M - p.width * k, y, p.width * k, p.height * k);
+        doc.addImage(imgData, fmt, PW - M - p.width * k, y, p.width * k, p.height * k);
         doc.setDrawColor(213, 221, 234); doc.rect(PW - M - p.width * k, y, p.width * k, p.height * k);
         r._imgH = p.height * k;
       } catch { imgW = 0; r._imgH = 0; }

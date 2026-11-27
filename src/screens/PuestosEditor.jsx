@@ -1,15 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { genId } from '../utils/id';
+import MediaPicker from '../components/MediaPicker';
+import { getMedia } from '../utils/cloudinary';
 import { savePuestoTemplate, loadPuestosTemplates, deletePuestoTemplate } from '../utils/sync';
 
 export default function PuestosEditor({ study, onChange, onBack, onStart }) {
   const [selId, setSelId] = useState(study.puestos[0]?.id);
-  const [modalImg, setModalImg] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [saveTplName, setSaveTplName] = useState('');
-  const fileRef = useRef(null);
-  const cameraRef = useRef(null);
 
   useEffect(() => {
     loadPuestosTemplates(study.modelo).then(setTemplates);
@@ -36,15 +35,6 @@ export default function PuestosEditor({ study, onChange, onBack, onStart }) {
     const next = puestos.filter(p => p.id !== id);
     onChange({ ...study, puestos: next });
     if (selId === id) setSelId(next[0].id);
-  };
-
-  const onFile = e => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => updatePuesto(sel.id, { imagen: reader.result });
-    reader.readAsDataURL(file);
-    e.target.value = '';
   };
 
   const addAccion = () => {
@@ -158,39 +148,11 @@ export default function PuestosEditor({ study, onChange, onBack, onStart }) {
               </div>
             </div>
 
-            {/* ── Imagen de referencia ── */}
+            {/* ── Fotos y videos de referencia ── */}
             <div className="detail-section">
-              <div className="section-header">📷 Imagen de referencia</div>
+              <div className="section-header">📷 Fotos y videos de referencia ({getMedia(sel).length})</div>
               <div style={{ padding: '12px 16px' }}>
-                <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-                <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
-                {sel.imagen ? (
-                  <div className="img-row">
-                    <img
-                      src={sel.imagen}
-                      alt="Referencia"
-                      className="img-thumb"
-                      onClick={() => setModalImg(sel.imagen)}
-                    />
-                    <div className="img-actions">
-                      <button className="ghost-btn light" onClick={() => setModalImg(sel.imagen)}>Ver ampliado</button>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button className="ghost-btn light" onClick={() => fileRef.current.click()}>📷 Galería</button>
-                        <button className="ghost-btn light" onClick={() => cameraRef.current.click()}>📸 Cámara</button>
-                      </div>
-                      <button className="danger-btn" onClick={() => updatePuesto(sel.id, { imagen: null })}>Quitar</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
-                    <button className="ghost-btn dashed" onClick={() => fileRef.current.click()}>
-                      📷 Subir imagen
-                    </button>
-                    <button className="ghost-btn dashed" onClick={() => cameraRef.current.click()}>
-                      📸 Tomar foto
-                    </button>
-                  </div>
-                )}
+                <MediaPicker items={getMedia(sel)} onChange={items => updatePuesto(sel.id, { media: items, imagen: null })} />
               </div>
             </div>
 
@@ -278,11 +240,6 @@ export default function PuestosEditor({ study, onChange, onBack, onStart }) {
         </div>
       )}
 
-      {modalImg && (
-        <div className="img-modal" onClick={() => setModalImg(null)}>
-          <img src={modalImg} alt="Referencia ampliada" />
-        </div>
-      )}
     </div>
   );
 }
