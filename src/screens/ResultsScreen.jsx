@@ -36,7 +36,7 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
 
   const saveAndExit = async () => {
     if (saving) return;
-    if (!alreadySaved && hasActiveUploads() && !window.confirm('Hay fotos o videos que todavía se están subiendo. Si guardás ahora, esos archivos no quedarán en el estudio. ¿Guardar igual?')) return;
+    if (!alreadySaved && hasActiveUploads() && !window.confirm('Hay fotos que todavía se están subiendo. Si guardás ahora, esos archivos no quedarán en el estudio. ¿Guardar igual?')) return;
     if (!alreadySaved) {
       setSaving(true);
       try {

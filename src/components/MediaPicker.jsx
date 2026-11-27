@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import MediaViewer from './MediaViewer';
-import { thumbSrc, isLocalMedia, MAX_VIDEO_MB } from '../utils/cloudinary';
+import { thumbSrc, isLocalMedia, MAX_VIDEO_MB, VIDEO_ENABLED, visibleMedia, isHiddenMedia } from '../utils/cloudinary';
 import { QUALITIES, getQuality, setQuality } from '../utils/videoCompress';
 import { enqueue, retry, cancel, registerView, useUploads } from '../utils/uploadQueue';
 
@@ -34,7 +34,11 @@ export function JobRow({ j }) {
 
 // Fotos y videos de un puesto o de un problema. items = [{id, tipo, url, nombre}]
 // Las subidas van a una cola global: siguen aunque cambies de pantalla.
-export default function MediaPicker({ items, onChange, target, hint }) {
+export default function MediaPicker({ items: allItems, onChange: onChangeAll, target, hint }) {
+  // Los videos en pausa quedan guardados pero ocultos: no se borran al quitar una foto
+  const items = visibleMedia(allItems);
+  const hiddenItems = (allItems || []).filter(isHiddenMedia);
+  const onChange = list => onChangeAll([...hiddenItems, ...list]);
   const [view, setView] = useState(null);
   const [quality, setQ] = useState(getQuality);
   const { jobs } = useUploads();
@@ -55,25 +59,31 @@ export default function MediaPicker({ items, onChange, target, hint }) {
     <div className="media-picker">
       <input ref={refs.gal} type="file" accept="image/*" multiple hidden onChange={handle} />
       <input ref={refs.cam} type="file" accept="image/*" capture="environment" hidden onChange={handle} />
-      <input ref={refs.vid} type="file" accept="video/*" multiple hidden onChange={handle} />
-      <input ref={refs.rec} type="file" accept="video/*" capture="environment" hidden onChange={handle} />
+      {VIDEO_ENABLED && <input ref={refs.vid} type="file" accept="video/*" multiple hidden onChange={handle} />}
+      {VIDEO_ENABLED && <input ref={refs.rec} type="file" accept="video/*" capture="environment" hidden onChange={handle} />}
 
       <div className="media-btns">
         <button type="button" className="ghost-btn" onClick={() => refs.gal.current.click()}>🖼 Foto (galería)</button>
         <button type="button" className="ghost-btn" onClick={() => refs.cam.current.click()}>📸 Sacar foto</button>
-        <button type="button" className="ghost-btn" onClick={() => refs.vid.current.click()}>🎞 Video (galería)</button>
-        <button type="button" className="ghost-btn" onClick={() => refs.rec.current.click()}>🎥 Grabar video</button>
+        {VIDEO_ENABLED && <button type="button" className="ghost-btn" onClick={() => refs.vid.current.click()}>🎞 Video (galería)</button>}
+        {VIDEO_ENABLED && <button type="button" className="ghost-btn" onClick={() => refs.rec.current.click()}>🎥 Grabar video</button>}
       </div>
 
-      <div className="quality-row">
-        <span className="quality-lbl">Calidad de video</span>
-        <div className="quality-seg" role="group" aria-label="Calidad de video">
-          {Object.entries(QUALITIES).map(([k, q]) => (
-            <button type="button" key={k} className={quality === k ? 'sel' : ''} onClick={() => pickQuality(k)}>{q.label}</button>
-          ))}
-        </div>
-      </div>
-      <p className="hint">{QUALITIES[quality].hint}. {hint || `Máximo ${MAX_VIDEO_MB} MB por video. Podés seguir trabajando mientras sube.`}</p>
+      {VIDEO_ENABLED ? (
+        <>
+          <div className="quality-row">
+            <span className="quality-lbl">Calidad de video</span>
+            <div className="quality-seg" role="group" aria-label="Calidad de video">
+              {Object.entries(QUALITIES).map(([k, q]) => (
+                <button type="button" key={k} className={quality === k ? 'sel' : ''} onClick={() => pickQuality(k)}>{q.label}</button>
+              ))}
+            </div>
+          </div>
+          <p className="hint">{QUALITIES[quality].hint}. {hint || `Máximo ${MAX_VIDEO_MB} MB por video. Podés seguir trabajando mientras sube.`}</p>
+        </>
+      ) : (
+        <p className="hint">{hint || 'Las fotos se reducen y se guardan en la nube. Podés seguir trabajando mientras suben.'}</p>
+      )}
 
       {mine.map(j => <JobRow key={j.id} j={j} />)}
 

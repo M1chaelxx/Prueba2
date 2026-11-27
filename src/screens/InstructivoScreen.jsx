@@ -1,3 +1,5 @@
+import { VIDEO_ENABLED } from '../utils/cloudinary';
+
 export default function InstructivoScreen({ onBack }) {
   return (
     <div className="screen instructivo-screen">
@@ -48,7 +50,7 @@ export default function InstructivoScreen({ onBack }) {
               <span className="step-num">4</span>
               <div>
                 <strong>Configurar acciones</strong> — Para cada puesto agregá las operaciones con descripción.
-                Podés subir fotos y videos cortos (hasta 100 MB) del puesto o de la hoja de proceso como referencia: desde la galería o tomándolos en el momento. Se guardan en la nube y los ve todo el equipo; durante la medición los abrís con “Ver referencia”. Podés elegir la calidad del video (360p, 480p o 720p): cuanto más baja, más rápido se comprime y sube; 480p alcanza para ver cómo se hace la tarea. Las subidas siguen en segundo plano aunque cambies de pantalla, y si se corta la conexión se reintentan solas.
+                {VIDEO_ENABLED ? 'Podés subir fotos y videos cortos (hasta 100 MB) del puesto o de la hoja de proceso como referencia: desde la galería o tomándolos en el momento. Se guardan en la nube y los ve todo el equipo; durante la medición los abrís con “Ver referencia”.' : 'Podés subir fotos del puesto o de la hoja de proceso como referencia: desde la galería o sacándolas en el momento. Se guardan en la nube y las ve todo el equipo; durante la medición las abrís con “Ver referencia”. Las subidas siguen en segundo plano aunque cambies de pantalla, y si se corta la conexión se reintentan solas.'}
               </div>
             </li>
             <li>

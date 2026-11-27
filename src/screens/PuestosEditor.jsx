@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { genId } from '../utils/id';
 import MediaPicker from '../components/MediaPicker';
-import { getMedia } from '../utils/cloudinary';
+import { getMedia, visibleMedia, mediaWord } from '../utils/cloudinary';
 import { savePuestoTemplate, loadPuestosTemplates, deletePuestoTemplate } from '../utils/sync';
 
 export default function PuestosEditor({ study, onChange, onBack, onStart }) {
@@ -150,7 +150,7 @@ export default function PuestosEditor({ study, onChange, onBack, onStart }) {
 
             {/* ── Fotos y videos de referencia ── */}
             <div className="detail-section">
-              <div className="section-header">📷 Fotos y videos de referencia ({getMedia(sel).length})</div>
+              <div className="section-header">📷 {mediaWord() === 'fotos' ? 'Fotos' : 'Fotos y videos'} de referencia ({visibleMedia(getMedia(sel)).length})</div>
               <div style={{ padding: '12px 16px' }}>
                 <MediaPicker target={{ type: 'puesto', id: sel.id }} items={getMedia(sel)} onChange={items => updatePuesto(sel.id, { media: items, imagen: null })} />
               </div>

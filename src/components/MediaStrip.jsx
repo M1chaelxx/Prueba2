@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import MediaViewer from './MediaViewer';
-import { thumbSrc } from '../utils/cloudinary';
+import { thumbSrc, visibleMedia, mediaWord } from '../utils/cloudinary';
 
 // Fotos y videos en solo lectura (Resultados y estudios guardados)
-export default function MediaStrip({ items }) {
+export default function MediaStrip({ items: all }) {
+  const items = visibleMedia(all);
   const [view, setView] = useState(null);
-  if (!items?.length) return null;
+  if (!items.length) return null;
   return (
     <div className="media-strip">
-      <span className="media-strip-lbl">📎 Fotos y videos del puesto ({items.length})</span>
+      <span className="media-strip-lbl">📎 {mediaWord() === 'fotos' ? 'Fotos' : 'Fotos y videos'} del puesto ({items.length})</span>
       <div className="media-grid">
         {items.map((m, k) => (
           <button type="button" className="media-thumb media-thumb-sq" key={m.id} onClick={() => setView(k)} aria-label={m.tipo === 'video' ? 'Ver video' : 'Ver foto'}>

@@ -4,6 +4,8 @@ import { compressVideo, canCompressVideo, COMPRESS_MIN_MB, DEFAULT_QUALITY } fro
 // Cloud name y preset "unsigned" son datos públicos (no hay claves secretas en la app).
 export const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD || 'vgia9y4h';
 export const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_PRESET || 'toma-tiempo';
+// Interruptor: los videos están en pausa. Para reactivarlos, cambiar a true (el código completo sigue en la app).
+export const VIDEO_ENABLED = false;
 export const MAX_VIDEO_MB = 100;
 export const MAX_IMAGE_MB = 10;
 
@@ -169,3 +171,8 @@ export function getMedia(puesto) {
   return [...(puesto?.imagen ? [{ id: 'legacy', tipo: 'image', url: puesto.imagen }] : []), ...(puesto?.media || [])];
 }
 export const cloudOnly = list => (list || []).filter(m => m?.url && !m.url.startsWith('data:') && !m.url.startsWith('blob:'));
+
+// Con los videos en pausa se ocultan de la pantalla, pero NO se borran de los datos
+export const isHiddenMedia = m => !VIDEO_ENABLED && m?.tipo === 'video';
+export const visibleMedia = list => (list || []).filter(m => !isHiddenMedia(m));
+export const mediaWord = () => (VIDEO_ENABLED ? 'fotos y videos' : 'fotos');

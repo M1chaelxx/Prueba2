@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import MediaPicker from '../components/MediaPicker';
 import { addProblemaHandler } from '../utils/uploadQueue';
+import { VIDEO_ENABLED, mediaWord } from '../utils/cloudinary';
 import { exportProblemaPdf, TOOL_LABELS } from '../utils/problemaPdf';
 import { genId } from '../utils/id';
 import { firebaseReady } from '../firebase';
@@ -300,8 +301,8 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
               <label>Contención inmediata<textarea rows={2} value={p.contencion} onChange={e => set({ contencion: e.target.value })} placeholder="Qué se hizo para que no siga pasando mientras se analiza" /></label>
             </div>
             <div className="card form-card">
-              <strong>📎 Evidencia (fotos y videos)</strong>
-              <MediaPicker target={{ type: 'problema', id: p.id }} items={p.media || []} onChange={items => set({ media: items })} hint="Fotos del defecto, de la pieza o del puesto, y videos cortos de la falla." />
+              <strong>📎 Evidencia ({mediaWord()})</strong>
+              <MediaPicker target={{ type: 'problema', id: p.id }} items={p.media || []} onChange={items => set({ media: items })} hint={VIDEO_ENABLED ? 'Fotos del defecto, de la pieza o del puesto, y videos cortos de la falla.' : 'Fotos del defecto, de la pieza o del puesto.'} />
             </div>
             {p.medicion && (
               <div className="card medicion-card">

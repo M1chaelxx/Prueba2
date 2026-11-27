@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import TimerDisplay from '../components/TimerDisplay';
 import MediaViewer from '../components/MediaViewer';
-import { getMedia, thumbSrc } from '../utils/cloudinary';
+import { getMedia, thumbSrc, visibleMedia } from '../utils/cloudinary';
 import { fmtTimer } from '../utils/timer';
 
 const emptyTimer = { elapsed: 0, startAt: null, running: false };
@@ -205,9 +205,9 @@ export default function StudyScreen({ study, draft, onDraft, onBack, onResults }
               : `${selDone}/${sel.acciones.length} acciones`}
           </span>
         </div>
-        {getMedia(sel).length > 0 && (
+        {visibleMedia(getMedia(sel)).length > 0 && (
           <button className="img-mini" onClick={() => setShowImg(true)}>
-            <img src={getMedia(sel)[0].url?.startsWith('data:') ? getMedia(sel)[0].url : thumbSrc(getMedia(sel)[0])} alt="" /> Ver referencia ({getMedia(sel).length})
+            <img src={visibleMedia(getMedia(sel))[0].url?.startsWith('data:') ? visibleMedia(getMedia(sel))[0].url : thumbSrc(visibleMedia(getMedia(sel))[0])} alt="" /> Ver referencia ({visibleMedia(getMedia(sel)).length})
           </button>
         )}
       </div>
@@ -430,8 +430,8 @@ export default function StudyScreen({ study, draft, onDraft, onBack, onResults }
         </button>
       </footer>
 
-      {showImg && getMedia(sel).length > 0 && (
-        <MediaViewer items={getMedia(sel)} onClose={() => setShowImg(false)} />
+      {showImg && visibleMedia(getMedia(sel)).length > 0 && (
+        <MediaViewer items={visibleMedia(getMedia(sel))} onClose={() => setShowImg(false)} />
       )}
     </div>
   );
