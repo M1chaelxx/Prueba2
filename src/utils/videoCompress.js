@@ -3,12 +3,12 @@
 // Un clip de 120 s queda en unos 25-30 MB. Si algo falla, el llamador sube el original.
 // Calidades: más baja = comprime y sube más rápido, pero se ve menos nítido.
 export const QUALITIES = {
-  p480: { label: '480p', hint: '480p: el más rápido y liviano (≈12 MB por 2 min)', side: 854, video: 700_000, audio: 64_000 },
-  p720: { label: '720p', hint: '720p: equilibrado (≈30 MB por 2 min)', side: 1280, video: 1_800_000, audio: 96_000 },
-  p1080: { label: '1080p', hint: '1080p: más nítido y más pesado (≈55 MB por 2 min)', side: 1920, video: 3_500_000, audio: 128_000 },
+  p360: { label: '360p', hint: '360p: el más liviano y rápido (≈8 MB por 2 min)', side: 640, video: 450_000, audio: 48_000 },
+  p480: { label: '480p', hint: '480p: rápido y se ve bien (≈12 MB por 2 min)', side: 854, video: 700_000, audio: 64_000 },
+  p720: { label: '720p', hint: '720p: más nítido (≈30 MB por 2 min)', side: 1280, video: 1_800_000, audio: 96_000 },
 };
 export const DEFAULT_QUALITY = 'p480';
-const LEGACY = { rapida: 'p480', normal: 'p720', alta: 'p1080' }; // valores guardados por versiones anteriores
+const LEGACY = { rapida: 'p480', normal: 'p720', alta: 'p720', p1080: 'p720' }; // valores guardados por versiones anteriores
 export const getQuality = () => { try { const q = localStorage.getItem('video-calidad'); const k = LEGACY[q] || q; return QUALITIES[k] ? k : DEFAULT_QUALITY; } catch { return DEFAULT_QUALITY; } };
 export const setQuality = q => { try { localStorage.setItem('video-calidad', q); } catch { /* ignore */ } };
 export const COMPRESS_MIN_MB = 8; // por debajo de este peso no vale la pena comprimir
