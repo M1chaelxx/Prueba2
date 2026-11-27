@@ -85,11 +85,31 @@ function Main() {
   );
 }
 
+// Aviso cuando se publica una versión nueva con la app abierta (no recarga sola para no perder datos)
+function UpdateBanner() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const had = !!navigator.serviceWorker.controller;
+    const h = () => { if (had) setShow(true); };
+    navigator.serviceWorker.addEventListener('controllerchange', h);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', h);
+  }, []);
+  if (!show) return null;
+  return (
+    <div className="update-banner" role="status">
+      <span>🔄 Hay una versión nueva de la app. Guardá lo que estés haciendo y actualizá.</span>
+      <button type="button" onClick={() => window.location.reload()}>Actualizar</button>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <Main />
       <UploadTray />
+      <UpdateBanner />
     </ErrorBoundary>
   );
 }

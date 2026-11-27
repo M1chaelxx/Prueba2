@@ -3,6 +3,8 @@ import { fmtTimer, fmtDate, fmtClock } from '../utils/timer';
 import { saveStudy } from '../utils/sync';
 import { cloudOnly, getMedia } from '../utils/cloudinary';
 import MediaStrip from '../components/MediaStrip';
+import { buildXlsx, downloadXlsx } from '../utils/xlsx';
+import { exportEstudioPdf } from '../utils/estudioPdf';
 import { hasActiveUploads } from '../utils/uploadQueue';
 
 const normTakes = v => {
@@ -90,25 +92,23 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
 
   const exportXlsx = async () => {
     try {
-      const { buildXlsx, downloadXlsx } = await import('../utils/xlsx');
       const buf = await buildXlsx({ study, rows, totals: { real: gReal, norm: gNorm, done: gDone, total: gTotal }, meds, normTakes, now });
       downloadXlsx(buf, `toma-tiempos-${study.modelo}-${study.capacidad}-${study.linea}-${now.toISOString().slice(0, 10)}.xlsx`);
       setExportMsg('✓ Exportación Excel completada');
     } catch (e) {
       console.error(e);
-      setExportMsg('⚠ No se pudo generar el Excel');
+      setExportMsg(`⚠ No se pudo generar el Excel (${String(e?.message || e).slice(0, 80)})`);
     }
     setTimeout(() => setExportMsg(''), 3000);
   };
 
   const exportPdf = async () => {
     try {
-      const { exportEstudioPdf } = await import('../utils/estudioPdf');
       await exportEstudioPdf({ study, rows, totals: { real: gReal, norm: gNorm, done: gDone, total: gTotal }, meds, normTakes, now });
       setExportMsg('✓ Exportación PDF completada');
     } catch (e) {
       console.error(e);
-      setExportMsg('⚠ No se pudo generar el PDF');
+      setExportMsg(`⚠ No se pudo generar el PDF (${String(e?.message || e).slice(0, 80)})`);
     }
     setTimeout(() => setExportMsg(''), 3000);
   };
