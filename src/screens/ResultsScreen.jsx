@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { fmtTimer, fmtDate, fmtClock } from '../utils/timer';
 import { saveStudy } from '../utils/sync';
-import { cloudOnly } from '../utils/cloudinary';
+import { cloudOnly, getMedia } from '../utils/cloudinary';
+import MediaStrip from '../components/MediaStrip';
 
 const normTakes = v => {
   if (!v) return [];
@@ -263,6 +264,7 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
                 </div>
                 <span className="pbadge">{r.done}/{r.doneOf}</span>
               </div>
+              <MediaStrip items={getMedia(r.puesto)} />
               {onProblema && (
                 <button
                   className={`ghost-btn prob-open-btn${study.taktTime && r.realTot > study.taktTime ? ' alert' : ''}`}

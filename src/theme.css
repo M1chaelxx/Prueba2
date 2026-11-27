@@ -422,3 +422,14 @@ input::placeholder, textarea::placeholder { color: var(--text2); opacity: .7; }
 .viewer-nav { display: flex; align-items: center; gap: 16px; color: #fff; font-weight: 700; }
 .viewer-nav button { width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255,255,255,.18); color: #fff; font-size: 1.4rem; }
 .viewer-nav button:disabled { opacity: .3; }
+
+.media-strip { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+.media-strip-lbl { font-size: .78rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; }
+.media-strip .media-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 84px)); }
+.media-thumb-sq { width: 84px; height: 84px; aspect-ratio: 1; }
+
+@media (max-width: 760px) {
+  body { overflow-x: hidden; }
+  .res-header-top { gap: 6px; padding-left: 12px; padding-right: 12px; }
+  .res-header-top .ghost-btn { padding: 8px 10px; font-size: .84rem; white-space: nowrap; }
+}
