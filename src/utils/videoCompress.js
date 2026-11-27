@@ -7,7 +7,7 @@ export const QUALITIES = {
   p480: { label: '480p', hint: '480p: rápido y se ve bien (≈12 MB por 2 min)', side: 854, video: 700_000, audio: 64_000 },
   p720: { label: '720p', hint: '720p: más nítido (≈30 MB por 2 min)', side: 1280, video: 1_800_000, audio: 96_000 },
 };
-export const DEFAULT_QUALITY = 'p480';
+export const DEFAULT_QUALITY = 'p360';
 const LEGACY = { rapida: 'p480', normal: 'p720', alta: 'p720', p1080: 'p720' }; // valores guardados por versiones anteriores
 export const getQuality = () => { try { const q = localStorage.getItem('video-calidad'); const k = LEGACY[q] || q; return QUALITIES[k] ? k : DEFAULT_QUALITY; } catch { return DEFAULT_QUALITY; } };
 export const setQuality = q => { try { localStorage.setItem('video-calidad', q); } catch { /* ignore */ } };
