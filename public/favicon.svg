@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="blueG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1565c0"/>
+      <stop offset="100%" stop-color="#42a5f5"/>
+    </linearGradient>
+    <linearGradient id="tealG" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#00bcd4"/>
+      <stop offset="100%" stop-color="#4caf50"/>
+    </linearGradient>
+    <radialGradient id="face" cx="40%" cy="35%">
+      <stop offset="0%" stop-color="#2a3a5a"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Blue arc: left to right over the TOP (clockwise, sweep=1) -->
+  <path d="M 8 32 A 24 24 0 0 1 56 32"
+        fill="none" stroke="url(#blueG)" stroke-width="5.5" stroke-linecap="round"/>
+  <!-- Blue arrowhead at (56,32) → clockwise direction here is downward -->
+  <polygon points="52,26 60,26 56,38" fill="#42a5f5"/>
+
+  <!-- Teal arc: right to left over the BOTTOM (clockwise, sweep=1) -->
+  <path d="M 56 32 A 24 24 0 0 1 8 32"
+        fill="none" stroke="url(#tealG)" stroke-width="5.5" stroke-linecap="round"/>
+  <!-- Teal arrowhead at (8,32) → clockwise direction here is upward -->
+  <polygon points="12,38 4,38 8,26" fill="#4caf50"/>
+
+  <!-- Stopwatch outer body -->
+  <circle cx="32" cy="33" r="17" fill="#1a1a2e"/>
+  <circle cx="32" cy="33" r="15.5" fill="#111827" stroke="#2d3748" stroke-width="0.8"/>
+
+  <!-- Crown button at top -->
+  <rect x="28.5" y="14" width="7" height="5" rx="2" fill="#374151"/>
+
+  <!-- Watch face -->
+  <circle cx="32" cy="34" r="12" fill="url(#face)"/>
+
+  <!-- Tick marks at 12, 3, 6, 9 -->
+  <line x1="32" y1="23" x2="32" y2="27" stroke="#4b5563" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="43" y1="34" x2="39" y2="34" stroke="#4b5563" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="32" y1="45" x2="32" y2="41" stroke="#4b5563" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="21" y1="34" x2="25" y2="34" stroke="#4b5563" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Digital display band -->
+  <rect x="20" y="31" width="24" height="8" rx="2" fill="#001833" opacity="0.95"/>
+
+  <!-- Digits (cyan) -->
+  <text x="32" y="37.5" font-family="monospace" font-size="6" fill="#00d4ff"
+        text-anchor="middle" font-weight="bold" letter-spacing="0.3">00:00</text>
+</svg>
