@@ -304,6 +304,53 @@ export default function InstructivoScreen({ onBack }) {
         </section>
 
         <section className="card">
+          <h2>Problemas y Análisis — cómo usar cada herramienta</h2>
+          <p>
+            Desde el menú principal, <strong>Problemas y Análisis</strong> permite registrar un problema, analizarlo y
+            seguirlo en equipo. Todos ven los mismos problemas en tiempo real, con responsable, comentarios y plan de acción.
+            Podés crear uno desde cero o, en <em>Resultados</em>, con el botón <strong>🔎 Analizar cuello de botella</strong>
+            de un puesto (se carga con la medición de ese puesto).
+          </p>
+          <div className="var-table" style={{ marginTop: 12 }}>
+            <div className="var-row">
+              <div className="var-name">5 Porqués<br/><span className="var-sub">Causa raíz</span></div>
+              <div className="var-def">
+                Preguntá &ldquo;¿por qué?&rdquo; sobre el problema y sobre cada respuesta hasta llegar a algo que puedas corregir
+                (normalmente 4 o 5 veces). Respondé con hechos verificados y no culpes personas: preguntá por qué el proceso lo permitió.
+                <br/><em>Ej: pierde aceite → unión floja → no se aplicó torque → no había torquímetro en el puesto → no está en la hoja de proceso.</em>
+              </div>
+            </div>
+            <div className="var-row">
+              <div className="var-name">Ishikawa<br/><span className="var-sub">Espina de pescado (6M)</span></div>
+              <div className="var-def">
+                Ordena todas las causas posibles en seis familias: Mano de obra, Máquina, Método, Material, Medición y Medio ambiente.
+                Úsalo cuando no sabés por dónde empezar o en una lluvia de ideas con el equipo: anotá una causa por línea y después
+                verificá las más probables en el puesto.
+              </div>
+            </div>
+            <div className="var-row">
+              <div className="var-name">Plan de acción<br/><span className="var-sub">Tareas con dueño y fecha</span></div>
+              <div className="var-def">
+                Por cada causa raíz confirmada definí una acción que la elimine, con un responsable y una fecha. Actualizá el estado
+                (Pendiente, En curso, Hecha). Cuando estén todas hechas, verificá en el puesto que no vuelve a aparecer y pasá el
+                problema a <em>Cerrado</em>.
+              </div>
+            </div>
+            <div className="var-row">
+              <div className="var-name">Contención<br/><span className="var-sub">Acción inmediata</span></div>
+              <div className="var-def">
+                Lo que hacés ya mismo para que el problema no siga afectando la producción (separar material, inspección al 100%, etc.),
+                mientras se analiza la causa raíz.
+              </div>
+            </div>
+          </div>
+          <p style={{ marginTop: 10 }}>
+            Cada herramienta tiene su botón <strong>💡 ¿Cómo se usa?</strong> con una guía y un ejemplo. El análisis se puede
+            exportar a PDF desde la pantalla del problema.
+          </p>
+        </section>
+
+        <section className="card">
           <h2>Consejos prácticos</h2>
           <ul style={{ marginTop: '10px', paddingLeft: '20px', lineHeight: '1.8' }}>
             <li>

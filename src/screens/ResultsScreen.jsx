@@ -14,7 +14,7 @@ const avgRealS = takes => takes.length ? takes.reduce((s, t) => s + t.ms, 0) / t
 const avgTNormS = takes => takes.length ? takes.reduce((s, t) => s + (t.ms / 1000) * (t.val / 100), 0) / takes.length : null;
 const avgMsVal = takes => takes.length ? takes.reduce((s, t) => s + t.ms, 0) / takes.length : null;
 
-export default function ResultsScreen({ study, result, onBack, onNew, backLabel }) {
+export default function ResultsScreen({ study, result, onBack, onNew, onProblema, backLabel }) {
   const now = new Date();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 760);
   const [exportMsg, setExportMsg] = useState('');
@@ -434,6 +434,19 @@ export default function ResultsScreen({ study, result, onBack, onNew, backLabel 
                 </div>
                 <span className="pbadge">{r.done}/{r.doneOf}</span>
               </div>
+              {onProblema && (
+                <button
+                  className={`ghost-btn prob-open-btn${study.taktTime && r.realTot > study.taktTime ? ' alert' : ''}`}
+                  onClick={() => onProblema({
+                    modelo: study.modelo, capacidad: study.capacidad, linea: study.linea,
+                    puesto: r.puesto.nombre,
+                    titulo: study.taktTime && r.realTot > study.taktTime ? `Cuello de botella en ${r.puesto.nombre}` : '',
+                    medicion: { tReal: +r.realTot.toFixed(2), takt: study.taktTime || null, estudio: `${study.analista} · ${fmtDate(now)}` },
+                  })}
+                >
+                  🔎 {study.taktTime && r.realTot > study.taktTime ? 'Analizar cuello de botella' : 'Abrir problema en este puesto'}
+                </button>
+              )}
 
               {/* Modo Por Puesto: tomas como filas */}
               {r.pModo === 'puesto' && (

@@ -25,7 +25,7 @@ function calcEff(study, result) {
   return real > 0 && std > 0 ? (std / real) * 100 : null;
 }
 
-export default function HomeScreen({ onStudy, onInstructivo, onViewSaved }) {
+export default function HomeScreen({ onStudy, onInstructivo, onProblemas, onViewSaved }) {
   const [saved, setSaved] = useState(loadLocal);
   const [sync, setSync] = useState(firebaseReady ? 'connecting' : 'local');
 
@@ -70,6 +70,15 @@ export default function HomeScreen({ onStudy, onInstructivo, onViewSaved }) {
           <div className="hc-text">
             <h2>Toma de Tiempo</h2>
             <p>Configurar puestos, acciones y ejecutar el estudio de tiempos en línea de producción</p>
+          </div>
+          <span className="hc-arrow">→</span>
+        </button>
+
+        <button className="home-card" onClick={onProblemas}>
+          <span className="hc-icon">🔎</span>
+          <div className="hc-text">
+            <h2>Problemas y Análisis</h2>
+            <p>5 Porqués, Ishikawa y plan de acción por puesto, con seguimiento del equipo</p>
           </div>
           <span className="hc-arrow">→</span>
         </button>

@@ -5,6 +5,7 @@ import SetupScreen from './screens/SetupScreen';
 import PuestosEditor from './screens/PuestosEditor';
 import StudyScreen from './screens/StudyScreen';
 import ResultsScreen from './screens/ResultsScreen';
+import ProblemasScreen from './screens/ProblemasScreen';
 
 class ErrorBoundary extends Component {
   state = { error: null };
@@ -30,6 +31,7 @@ function Main() {
   const [study, setStudy] = useState(null);
   const [result, setResult] = useState(null);
   const [fromSaved, setFromSaved] = useState(false);
+  const [prefill, setPrefill] = useState(null); // problema nuevo precargado desde Resultados
   const [draft, setDraft] = useState(null); // mediciones en curso (sobreviven a volver a Config)
 
   if (screen === 'home') {
@@ -37,6 +39,7 @@ function Main() {
       <HomeScreen
         onStudy={() => setScreen('setup')}
         onInstructivo={() => setScreen('instructivo')}
+        onProblemas={() => { setPrefill(null); setScreen('problemas'); }}
         onViewSaved={e => {
           setStudy(e.study);
           setResult({ ...e.result, _savedId: e.id });
@@ -46,6 +49,7 @@ function Main() {
       />
     );
   }
+  if (screen === 'problemas') return <ProblemasScreen prefill={prefill} onBack={() => (prefill ? (setPrefill(null), setScreen('results')) : setScreen('home'))} />;
   if (screen === 'instructivo') return <InstructivoScreen onBack={() => setScreen('home')} />;
   if (screen === 'setup') {
     return <SetupScreen initial={study} onBack={() => setScreen('home')} onNext={s => { if (!study) setDraft(null); setStudy(s); setScreen('editor'); }} />;
@@ -61,6 +65,7 @@ function Main() {
       study={study}
       result={result}
       onBack={() => (fromSaved ? (setFromSaved(false), setScreen('home')) : setScreen('study'))}
+      onProblema={pf => { setPrefill(pf); setScreen('problemas'); }}
       backLabel={fromSaved ? '← Estudios guardados' : '← Volver a medir'}
       onNew={() => { setDraft(null); setStudy(null); setResult(null); setFromSaved(false); setScreen('home'); }}
     />

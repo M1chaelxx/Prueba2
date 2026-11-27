@@ -15,7 +15,7 @@ const config = {
 };
 
 function init() {
-  if (!config.apiKey || !config.projectId) return null;
+  if (env.VITE_DISABLE_FIREBASE || !config.apiKey || !config.projectId) return null;
   try {
     return getFirestore(initializeApp(config));
   } catch (e) {
