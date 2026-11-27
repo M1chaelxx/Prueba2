@@ -1,16 +1,17 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-// El proyecto Firebase original fue eliminado. La sincronización en la nube queda
-// desactivada hasta definir las variables VITE_FIREBASE_* (archivo .env) de un proyecto nuevo.
-// Sin ellas la app funciona 100% local (localStorage).
+// Configuración del proyecto Firebase "toma-de-tiempo". Estas claves son públicas por diseño
+// (van en el bundle web); la seguridad real la dan las reglas de Firestore.
+// Se pueden sobreescribir con variables VITE_FIREBASE_* (archivo .env).
+const env = import.meta.env;
 const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: env.VITE_FIREBASE_API_KEY || 'AIzaSyCtlEKGQfaIWAPOzwcUfXV6yfXDRVhpIks',
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || 'toma-de-tiempo-6291c.firebaseapp.com',
+  projectId: env.VITE_FIREBASE_PROJECT_ID || 'toma-de-tiempo-6291c',
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || 'toma-de-tiempo-6291c.firebasestorage.app',
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '44491002729',
+  appId: env.VITE_FIREBASE_APP_ID || '1:44491002729:web:a5046c17a504d9844923f8',
 };
 
 function init() {
