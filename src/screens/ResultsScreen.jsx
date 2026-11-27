@@ -27,17 +27,32 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (!study || !result || result._savedId) return;
-    const nowMs = Date.now();
-    const entry = {
-      id: nowMs,
-      timestamp: now.toISOString(),
-      study: { ...study, puestos: study.puestos.map(p => ({ ...p, imagen: null })) },
-      result,
-    };
-    saveStudy(entry).catch(() => {});
-  }, []);
+  // El estudio ya no se guarda solo: se guarda únicamente con "Guardar estudio" o "Nuevo estudio".
+  // Un estudio abierto desde "Estudios guardados" (_savedId) ya está guardado y no se vuelve a guardar.
+  const alreadySaved = !!result?._savedId;
+  const [saving, setSaving] = useState(false);
+
+  const saveAndExit = async () => {
+    if (saving) return;
+    if (!alreadySaved) {
+      setSaving(true);
+      try {
+        await saveStudy({
+          id: Date.now(),
+          timestamp: new Date().toISOString(),
+          study: { ...study, puestos: study.puestos.map(p => ({ ...p, imagen: null })) },
+          result,
+        });
+      } catch {
+        setSaving(false);
+        setExportMsg('⚠ No se pudo guardar el estudio. Revisá la conexión e intentá de nuevo.');
+        setTimeout(() => setExportMsg(''), 4000);
+        return;
+      }
+      setSaving(false);
+    }
+    onNew();
+  };
 
   const rows = study.puestos.map((p, i) => {
     // Per-puesto mode: element if has acciones, puesto otherwise; fallback to saved global modo
@@ -372,7 +387,15 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
         <p className="subtitle res-subtitle">
           {study.modelo} {study.capacidad} · {study.linea} · {study.analista} · {fmtDate(now)}
         </p>
-        <button className="primary-btn res-new-btn" onClick={onNew}>+ Nuevo estudio</button>
+        <div className="res-actions">
+          {!alreadySaved && (
+            <button className="primary-btn res-new-btn" onClick={saveAndExit} disabled={saving}>
+              {saving ? 'Guardando…' : '💾 Guardar estudio'}
+            </button>
+          )}
+          <button className="primary-btn res-new-btn" onClick={saveAndExit} disabled={saving}>+ Nuevo estudio</button>
+        </div>
+        {!alreadySaved && <p className="res-unsaved">⚠ Este estudio todavía no está guardado. Se guarda al tocar “Guardar estudio” o “Nuevo estudio”.</p>}
       </header>
 
       <div className="results-body">

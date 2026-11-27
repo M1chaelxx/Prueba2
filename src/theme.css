@@ -395,3 +395,9 @@ input::placeholder, textarea::placeholder { color: var(--text2); opacity: .7; }
 .tt-input-row { flex-wrap: wrap; row-gap: 8px; }
 .tt-input-row .tt-save-btn { background: var(--bg2); color: var(--accent); border: 1.5px solid var(--accent); font-weight: 700; padding: 8px 14px; border-radius: 10px; white-space: nowrap; }
 .tt-input-row .tt-save-btn:disabled { color: var(--text2); border-color: var(--border); }
+
+.res-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.res-actions .res-new-btn { flex: 1 1 180px; }
+.res-unsaved { color: #ffd9a0; font-size: .78rem; font-weight: 600; margin-top: 8px; }
+.prob-open-btn { background: var(--bg2); color: var(--accent); border: 1.5px solid var(--accent); font-weight: 700; padding: 9px 14px; }
+.prob-open-btn.alert { background: var(--over-bg); border-color: var(--over); color: var(--over); }
