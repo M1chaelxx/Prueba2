@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { fmtTimer, fmtDate, fmtClock } from '../utils/timer';
@@ -88,134 +87,15 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
   const gEff = gReal > 0 && gStd > 0 ? (gStd / gReal) * 100 : null;
 
   const exportXlsx = async () => {
-    // Colors: azul = dato ingresado por el usuario, gris = calculado automáticamente
-    const C_USER = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB3D1F2' } };
-    const C_CALC = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
-    const boldFont = { bold: true, size: 10 };
-    const hdrBorder = { top: { style: 'thin' }, bottom: { style: 'medium' }, left: { style: 'thin' }, right: { style: 'thin' } };
-
-    const styleHdr = (cell, isUser) => {
-      cell.fill = isUser ? C_USER : C_CALC;
-      cell.font = boldFont;
-      cell.border = hdrBorder;
-      cell.alignment = { vertical: 'middle', wrapText: false };
-    };
-
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'Toma de Tiempo en Línea';
-
-    // ── Hoja 1: Estudio ──
-    const ws = wb.addWorksheet('Estudio');
-    ws.columns = [
-      { key: 'puesto', width: 30 }, { key: 'operario', width: 20 },
-      { key: 'modo', width: 14 }, { key: 'nro', width: 6 },
-      { key: 'accion', width: 36 }, { key: 'treal', width: 16 },
-      { key: 'tnorm', width: 16 }, { key: 'mmss', width: 14 },
-      { key: 'tomas', width: 8 }, { key: 'comment', width: 30 },
-    ];
-
-    // Info del estudio
-    const addInfo = (vals, bold = false) => {
-      const r = ws.addRow(vals);
-      if (bold) r.font = { bold: true, size: 11 };
-      return r;
-    };
-    addInfo(['Estudio de Tiempos en Línea'], true);
-    addInfo(['Modelo', `${study.modelo} ${study.capacidad}`, 'Línea', study.linea]);
-    addInfo(['Analista', study.analista, 'Fecha', `${fmtDate(now)} ${fmtClock(now)}`]);
-    ws.addRow([]);
-
-    // Totales globales
-    addInfo(['TOTALES'], true);
-    ws.addRow(['T Real prom total (s)', gReal.toFixed(3), 'T Normal prom total (s)', gNorm.toFixed(3)]);
-    ws.addRow([]);
-
-    // Headers con colores (azul = usuario, gris = calculado)
-    // Puesto(U) Operario(U) Modo(C) Nro(C) Acción(U) T Real(C) T Norm(C) MM:SS(C) Tomas(C) Comentario(U)
-    const isUser = [true, true, false, false, true, false, false, false, false, true];
-    const hdrLabels = ['Puesto', 'Operario', 'Modo', 'Nro', 'Acción', 'T Real prom (s)', 'T Normal prom (s)', 'MM:SS:CC', 'Tomas', 'Comentario'];
-    const hdrRow = ws.addRow(hdrLabels);
-    hdrRow.height = 22;
-    hdrRow.eachCell((cell, col) => styleHdr(cell, isUser[col - 1]));
-
-    rows.forEach(r => {
-      if (r.pModo === 'puesto') {
-        ws.addRow([
-          `P${String(r.num).padStart(2, '0')} ${r.puesto.nombre}`,
-          r.puesto.operario || '', 'Por Puesto', '', '',
-          r.realTot ? +r.realTot.toFixed(3) : null,
-          r.tNormTot ? +r.tNormTot.toFixed(3) : null,
-          '', r.pTakes.length, r.comment || '',
-        ]);
-      } else {
-        r.acciones.forEach(a => {
-          ws.addRow([
-            `P${String(r.num).padStart(2, '0')} ${r.puesto.nombre}`,
-            r.puesto.operario || '', 'Por Elemento', a.idx, a.desc || '',
-            a.realS != null ? +a.realS.toFixed(3) : null,
-            a.tNorm != null ? +a.tNorm.toFixed(3) : null,
-            a.avgMs != null ? fmtTimer(a.avgMs) : '',
-            a.nTakes, a.idx === 1 ? (r.comment || '') : '',
-          ]);
-        });
-        const totRow = ws.addRow([
-          `P${String(r.num).padStart(2, '0')} TOTAL`, '', 'Por Elemento', '', '',
-          +r.realTot.toFixed(3), +r.tNormTot.toFixed(3), '', '', '',
-        ]);
-        totRow.font = { bold: true };
-        totRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
-      }
-    });
-
-    // ── Hoja 2: Tomas individuales ──
-    const ws2 = wb.addWorksheet('Tomas individuales');
-    ws2.columns = [
-      { key: 'puesto', width: 28 }, { key: 'operario', width: 20 },
-      { key: 'modo', width: 14 }, { key: 'accion', width: 32 },
-      { key: 'toma', width: 8 }, { key: 'mmss', width: 14 },
-      { key: 'treal', width: 14 }, { key: 'val', width: 16 },
-      { key: 'tnorm', width: 14 },
-    ];
-
-    // Puesto(U) Operario(U) Modo(C) Acción(U) Toma#(C) MM:SS(C) T Real(C) Valoración(U) T Normal(C)
-    const isUser2 = [true, true, false, true, false, false, false, true, false];
-    const hdrLabels2 = ['Puesto', 'Operario', 'Modo', 'Acción', 'Toma #', 'MM:SS:CC', 'T Real (s)', 'Valoración (%)', 'T Normal (s)'];
-    const hdrRow2 = ws2.addRow(hdrLabels2);
-    hdrRow2.height = 22;
-    hdrRow2.eachCell((cell, col) => styleHdr(cell, isUser2[col - 1]));
-
-    rows.forEach(r => {
-      if (r.pModo === 'puesto') {
-        r.pTakes.forEach((take, idx) => {
-          ws2.addRow([
-            `P${String(r.num).padStart(2, '0')} ${r.puesto.nombre}`,
-            r.puesto.operario || '', 'Por Puesto', '(total puesto)', idx + 1,
-            fmtTimer(take.ms), +(take.ms / 1000).toFixed(3), take.val, +((take.ms / 1000) * (take.val / 100)).toFixed(3),
-          ]);
-        });
-      } else {
-        const pm = meds[r.puesto.id] || {};
-        r.acciones.forEach(a => {
-          normTakes(pm[a.id]).forEach((take, idx) => {
-            ws2.addRow([
-              `P${String(r.num).padStart(2, '0')} ${r.puesto.nombre}`,
-              r.puesto.operario || '', 'Por Elemento', a.desc || `Acción ${a.idx}`, idx + 1,
-              fmtTimer(take.ms), +(take.ms / 1000).toFixed(3), take.val, +((take.ms / 1000) * (take.val / 100)).toFixed(3),
-            ]);
-          });
-        });
-      }
-    });
-
-    const buf = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `toma-tiempos-${study.modelo}-${study.capacidad}-${study.linea}-${now.toISOString().slice(0, 10)}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setExportMsg('✓ Exportación Excel completada');
+    try {
+      const { buildXlsx, downloadXlsx } = await import('../utils/xlsx');
+      const buf = await buildXlsx({ study, rows, totals: { real: gReal, norm: gNorm, done: gDone, total: gTotal }, meds, normTakes, now });
+      downloadXlsx(buf, `toma-tiempos-${study.modelo}-${study.capacidad}-${study.linea}-${now.toISOString().slice(0, 10)}.xlsx`);
+      setExportMsg('✓ Exportación Excel completada');
+    } catch (e) {
+      console.error(e);
+      setExportMsg('⚠ No se pudo generar el Excel');
+    }
     setTimeout(() => setExportMsg(''), 3000);
   };
 
