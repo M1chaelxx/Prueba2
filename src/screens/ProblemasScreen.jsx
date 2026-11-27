@@ -61,6 +61,58 @@ function ParetoChart({ items }) {
   );
 }
 
+const clip = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+
+// Diagrama de espina de pescado (Ishikawa 6M)
+function Fishbone({ titulo, ishikawa }) {
+  const W = 940, H = 470, spineY = 235;
+  const cols = [250, 480, 710];
+  const wrap = (t, n = 17) => {
+    const words = (t || 'Problema').split(' '); const lines = []; let cur = '';
+    words.forEach(w => { if ((cur + ' ' + w).trim().length > n) { lines.push(cur.trim()); cur = w; } else cur += ' ' + w; });
+    lines.push(cur.trim()); return lines.slice(0, 4);
+  };
+  const lines = wrap(titulo);
+  const bone = (cat, i, top) => {
+    const x = cols[i]; const x0 = x - 90; const y0 = top ? 62 : H - 62;
+    const causes = (ishikawa[cat] || []).filter(c => c.trim());
+    const shown = causes.slice(0, 6);
+    return (
+      <g key={cat}>
+        <rect x={x0 - 62} y={top ? 14 : H - 44} width="150" height="30" rx="8" fill="#2563eb" />
+        <text x={x0 + 13} y={top ? 34 : H - 24} textAnchor="middle" fill="#fff" fontSize="13" fontWeight="700">{cat}</text>
+        <line x1={x0} y1={y0} x2={x} y2={spineY} stroke="#2563eb" strokeWidth="3" strokeLinecap="round" />
+        {shown.map((c, k) => {
+          const t = (k + 1) / (shown.length + 1);
+          const bx = x0 + (x - x0) * t; const by = y0 + (spineY - y0) * t;
+          return (
+            <g key={k}>
+              <line x1={bx - 128} y1={by} x2={bx} y2={by} stroke="var(--text2)" strokeWidth="1.2" />
+              <text x={bx - 124} y={by - 4} fontSize="11" fill="var(--text)">{clip(c, 22)}</text>
+            </g>
+          );
+        })}
+        {causes.length > 6 && <text x={x0 - 40} y={top ? 58 : H - 56} fontSize="10" fill="var(--text2)">+{causes.length - 6} más</text>}
+      </g>
+    );
+  };
+  return (
+    <div className="fish-wrap">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 720 }} role="img" aria-label="Diagrama de espina de pescado">
+        <line x1="30" y1={spineY} x2="780" y2={spineY} stroke="#1e40af" strokeWidth="5" strokeLinecap="round" />
+        <polygon points="780,225 800,235 780,245" fill="#1e40af" />
+        <rect x="800" y={spineY - 62} width="132" height="124" rx="14" fill="#dc2626" />
+        {lines.map((l, i) => (
+          <text key={i} x="866" y={spineY - (lines.length - 1) * 8 + i * 17 + 4} textAnchor="middle" fill="#fff" fontSize="13" fontWeight="700">{l}</text>
+        ))}
+        {CATEGORIAS_6M.slice(0, 3).map((c, i) => bone(c, i, true))}
+        {CATEGORIAS_6M.slice(3).map((c, i) => bone(c, i, false))}
+      </svg>
+      <p className="hint">Deslizá hacia los costados si no entra completo en pantalla.</p>
+    </div>
+  );
+}
+
 /* ───────────── Lista ───────────── */
 function Lista({ problemas, onOpen, onNew, onBack, status }) {
   const [fEstado, setFEstado] = useState('todos');
@@ -227,6 +279,28 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
       doc.setFont('helvetica', 'bold'); doc.text('Plan de acción', m, y); y += 2;
       autoTable(doc, { startY: y, margin: { left: m, right: m }, head: [['Acción', 'Responsable', 'Fecha', 'Estado']], body: p.acciones.map(a => [a.desc, a.resp || '-', a.fecha || '-', a.estado]), styles: { fontSize: 8.5 }, headStyles: { fillColor: [30, 64, 175] } });
     }
+    if (CATEGORIAS_6M.some(c => (p.ishikawa[c] || []).some(t => t.trim()))) {
+      doc.addPage('a4', 'landscape');
+      const sy = 105; const cx = [90, 160, 230];
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('Diagrama Ishikawa (6M)', 14, 14);
+      doc.setDrawColor(30, 64, 175); doc.setLineWidth(1.2); doc.line(14, sy, 250, sy);
+      doc.setFillColor(220, 38, 38); doc.roundedRect(250, sy - 22, 36, 44, 3, 3, 'F');
+      doc.setTextColor(255, 255, 255); doc.setFontSize(8);
+      doc.text(doc.splitTextToSize(p.titulo || 'Problema', 32).slice(0, 5), 268, sy - 8, { align: 'center' });
+      CATEGORIAS_6M.forEach((cat, idx) => {
+        const top = idx < 3; const x = cx[idx % 3]; const x0 = x - 30; const y0 = top ? 30 : 180;
+        doc.setDrawColor(37, 99, 235); doc.setLineWidth(0.8); doc.line(x0, y0, x, sy);
+        doc.setFillColor(37, 99, 235); doc.roundedRect(x0 - 24, top ? 20 : 183, 44, 8, 2, 2, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.text(cat, x0 - 2, top ? 25.5 : 188.5, { align: 'center' });
+        const causes = (p.ishikawa[cat] || []).filter(t => t.trim()).slice(0, 6);
+        doc.setTextColor(30, 30, 30); doc.setFontSize(7); doc.setLineWidth(0.2); doc.setDrawColor(120, 120, 120);
+        causes.forEach((c, k) => {
+          const t = (k + 1) / (causes.length + 1); const bx = x0 + (x - x0) * t; const by = y0 + (sy - y0) * t;
+          doc.line(bx - 38, by, bx, by); doc.text(clip(c, 30), bx - 37, by - 1);
+        });
+      });
+      doc.setTextColor(0, 0, 0);
+    }
     doc.save(`problema-${(p.titulo || 'sin-titulo').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.pdf`);
     flash('✓ PDF exportado');
   };
@@ -332,6 +406,11 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
                 <li>Después marcá las más probables y verificalas en el puesto. Las confirmadas pasan al 5 Porqués o al plan de acción.</li>
               </ol>
             </Guia>
+            <div className="card form-card">
+              <strong>Diagrama</strong>
+              <Fishbone titulo={p.titulo} ishikawa={p.ishikawa} />
+            </div>
+            <strong className="ishi-title">Cargar causas por familia</strong>
             <div className="ishi-grid">
               {CATEGORIAS_6M.map(c => (
                 <div className="card ishi-cat" key={c}>
