@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { fmtTimer, fmtDate, fmtClock } from '../utils/timer';
 import { saveStudy } from '../utils/sync';
 
@@ -99,88 +97,15 @@ export default function ResultsScreen({ study, result, onBack, onNew, onProblema
     setTimeout(() => setExportMsg(''), 3000);
   };
 
-  const exportPdf = () => {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const margin = 14;
-    const pageW = doc.internal.pageSize.getWidth();
-    let y = margin;
-
-    // ── Encabezado ──
-    doc.setFontSize(14); doc.setFont('helvetica', 'bold');
-    doc.text('Estudio de Tiempos en Línea', margin, y); y += 7;
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-    doc.text(`Modelo: ${study.modelo} ${study.capacidad}   Línea: ${study.linea}   Analista: ${study.analista}   Fecha: ${fmtDate(now)} ${fmtClock(now)}`, margin, y); y += 5;
-    if (study.taktTime) { doc.text(`Takt Time: ${study.taktTime.toFixed(1)} s`, margin, y); y += 5; }
-
-    // ── Totales ──
-    y += 2;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-    doc.text('Resumen General', margin, y); y += 4;
-    autoTable(doc, {
-      startY: y, margin: { left: margin, right: margin },
-      head: [['Medidas', 'T Real prom total (s)', 'T Normal prom total (s)']],
-      body: [[`${gDone}/${gTotal}`, gReal.toFixed(2), gNorm.toFixed(2)]],
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [41, 98, 255] },
-    });
-    y = doc.lastAutoTable.finalY + 6;
-
-    // ── Por puesto ──
-    rows.forEach(r => {
-      if (y > 260) { doc.addPage(); y = margin; }
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-      doc.text(`P${String(r.num).padStart(2, '0')} — ${r.puesto.nombre}${r.puesto.operario ? `   Op: ${r.puesto.operario}` : ''}`, margin, y); y += 4;
-
-      if (r.pModo === 'puesto') {
-        autoTable(doc, {
-          startY: y, margin: { left: margin, right: margin },
-          head: [['#', 'T Real (s)', 'Valoración (%)', 'T Normal (s)']],
-          body: r.pTakes.length === 0
-            ? [['Sin tomas', '', '', '']]
-            : r.pTakes.map((t, i) => [i + 1, (t.ms / 1000).toFixed(2), `${t.val}%`, ((t.ms / 1000) * (t.val / 100)).toFixed(2)]),
-          foot: r.pTakes.length > 0 ? [['Prom', r.realTot.toFixed(2), '', r.tNormTot.toFixed(2)]] : [],
-          styles: { fontSize: 8, cellPadding: 2 },
-          headStyles: { fillColor: [80, 80, 80] },
-          footStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
-        });
-      } else {
-        autoTable(doc, {
-          startY: y, margin: { left: margin, right: margin },
-          head: [['#', 'Acción', 'T Real (s)', 'T Norm (s)', 'MM:SS:CC', 'Tomas']],
-          body: r.acciones.map(a => [
-            a.idx, a.desc || '(sin desc.)',
-            a.realS != null ? a.realS.toFixed(2) : '—',
-            a.tNorm != null ? a.tNorm.toFixed(2) : '—',
-            a.avgMs != null ? fmtTimer(a.avgMs) : '—',
-            a.nTakes,
-          ]),
-          foot: [['', 'Total', r.realTot.toFixed(2), r.tNormTot.toFixed(2), '', '']],
-          styles: { fontSize: 7.5, cellPadding: 2 },
-          headStyles: { fillColor: [80, 80, 80] },
-          footStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold' },
-          columnStyles: { 1: { cellWidth: 55 } },
-        });
-      }
-      y = doc.lastAutoTable.finalY + 3;
-
-      if (r.comment) {
-        if (y > 270) { doc.addPage(); y = margin; }
-        doc.setFont('helvetica', 'italic'); doc.setFontSize(8);
-        doc.text(`Comentario: ${r.comment}`, margin, y); y += 5;
-      }
-      y += 3;
-    });
-
-    // Numeración de páginas
-    const total = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= total; i++) {
-      doc.setPage(i);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-      doc.text(`Página ${i} de ${total}`, pageW - margin, doc.internal.pageSize.getHeight() - 6, { align: 'right' });
+  const exportPdf = async () => {
+    try {
+      const { exportEstudioPdf } = await import('../utils/estudioPdf');
+      exportEstudioPdf({ study, rows, totals: { real: gReal, norm: gNorm, done: gDone, total: gTotal }, meds, normTakes, now });
+      setExportMsg('✓ Exportación PDF completada');
+    } catch (e) {
+      console.error(e);
+      setExportMsg('⚠ No se pudo generar el PDF');
     }
-
-    doc.save(`toma-tiempos-${study.modelo}-${study.capacidad}-${study.linea}-${now.toISOString().slice(0, 10)}.pdf`);
-    setExportMsg('✓ Exportación PDF completada');
     setTimeout(() => setExportMsg(''), 3000);
   };
 
