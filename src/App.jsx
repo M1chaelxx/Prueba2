@@ -30,6 +30,7 @@ function Main() {
   const [study, setStudy] = useState(null);
   const [result, setResult] = useState(null);
   const [fromSaved, setFromSaved] = useState(false);
+  const [draft, setDraft] = useState(null); // mediciones en curso (sobreviven a volver a Config)
 
   if (screen === 'home') {
     return (
@@ -47,13 +48,13 @@ function Main() {
   }
   if (screen === 'instructivo') return <InstructivoScreen onBack={() => setScreen('home')} />;
   if (screen === 'setup') {
-    return <SetupScreen initial={study} onBack={() => setScreen('home')} onNext={s => { setStudy(s); setScreen('editor'); }} />;
+    return <SetupScreen initial={study} onBack={() => setScreen('home')} onNext={s => { if (!study) setDraft(null); setStudy(s); setScreen('editor'); }} />;
   }
   if (screen === 'editor') {
     return <PuestosEditor study={study} onChange={setStudy} onBack={() => setScreen('setup')} onStart={() => setScreen('study')} />;
   }
   if (screen === 'study') {
-    return <StudyScreen study={study} onBack={() => setScreen('editor')} onResults={r => { setResult(r); setFromSaved(false); setScreen('results'); }} />;
+    return <StudyScreen study={study} draft={draft} onDraft={setDraft} onBack={() => setScreen('editor')} onResults={r => { setResult(r); setFromSaved(false); setScreen('results'); }} />;
   }
   return (
     <ResultsScreen
@@ -61,7 +62,7 @@ function Main() {
       result={result}
       onBack={() => (fromSaved ? (setFromSaved(false), setScreen('home')) : setScreen('study'))}
       backLabel={fromSaved ? '← Estudios guardados' : '← Volver a medir'}
-      onNew={() => { setStudy(null); setResult(null); setFromSaved(false); setScreen('home'); }}
+      onNew={() => { setDraft(null); setStudy(null); setResult(null); setFromSaved(false); setScreen('home'); }}
     />
   );
 }

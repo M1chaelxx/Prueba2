@@ -1,18 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TimerDisplay from '../components/TimerDisplay';
 import { fmtTimer } from '../utils/timer';
 
 const emptyTimer = { elapsed: 0, startAt: null, running: false };
 
-export default function StudyScreen({ study, onBack, onResults }) {
+export default function StudyScreen({ study, draft, onDraft, onBack, onResults }) {
   const [selId, setSelId] = useState(study.puestos[0]?.id);
-  const [timers, setTimers] = useState({});
-  const [meds, setMeds] = useState({});
-  const [puestoRec, setPuestoRec] = useState({});
+  const [timers, setTimers] = useState(draft?.timers || {});
+  const [meds, setMeds] = useState(draft?.meds || {});
+  const [puestoRec, setPuestoRec] = useState(draft?.puestoRec || {});
   const [showImg, setShowImg] = useState(false);
-  const [valBySel, setValBySel] = useState({});
-  const [comments, setComments] = useState({});
+  const [valBySel, setValBySel] = useState(draft?.valBySel || {});
+  const [comments, setComments] = useState(draft?.comments || {});
   const [manualTime, setManualTime] = useState('');
+
+  // Autoguardado: al volver a Config (o a Resultados) no se pierde lo medido
+  useEffect(() => {
+    onDraft?.({ timers, meds, puestoRec, valBySel, comments });
+  }, [timers, meds, puestoRec, valBySel, comments]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const puestos = study.puestos;
   const sel = puestos.find(p => p.id === selId) || puestos[0];
