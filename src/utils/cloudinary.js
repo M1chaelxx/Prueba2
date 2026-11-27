@@ -1,4 +1,5 @@
 import { genId } from './id';
+import { compressVideo, canCompressVideo, COMPRESS_MIN_MB } from './videoCompress';
 
 // Cloud name y preset "unsigned" son datos públicos (no hay claves secretas en la app).
 export const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD || 'vgia9y4h';
@@ -44,15 +45,30 @@ export const thumbSrc = m => {
 };
 
 // Sube un archivo (foto o video). Devuelve un item de media listo para guardar.
-export function uploadMedia(file, onProgress) {
+export function uploadMedia(file, onProgress, onStage) {
   const isVideo = file.type.startsWith('video/');
   const limit = (isVideo ? MAX_VIDEO_MB : MAX_IMAGE_MB) * 1024 * 1024;
   return (async () => {
-    const body = isVideo ? file : await resizeImage(file);
-    if (body.size > limit) throw new Error(`El archivo pesa ${(body.size / 1048576).toFixed(0)} MB y el máximo es ${isVideo ? MAX_VIDEO_MB : MAX_IMAGE_MB} MB.`);
+    let body;
+    if (isVideo) {
+      body = file;
+      // Comprime en el dispositivo (más liviano y más rápido de subir). Si no se puede, sube el original.
+      if (canCompressVideo() && file.size > COMPRESS_MIN_MB * 1048576) {
+        try {
+          onStage?.('compress');
+          const small = await compressVideo(file, p => onProgress?.(p));
+          if (small.size < file.size) body = small;
+        } catch (err) { console.warn('Compresión de video no disponible:', err); }
+        onStage?.('upload');
+      }
+    } else body = await resizeImage(file);
+    if (body.size > limit) {
+      const tip = isVideo ? ' Grabá en 720p o un clip más corto.' : '';
+      throw new Error(`El archivo pesa ${(body.size / 1048576).toFixed(0)} MB y el máximo es ${isVideo ? MAX_VIDEO_MB : MAX_IMAGE_MB} MB.${tip}`);
+    }
     return new Promise((resolve, reject) => {
       const fd = new FormData();
-      fd.append('file', body, file.name || (isVideo ? 'video.mp4' : 'foto.jpg'));
+      fd.append('file', body, body.name || file.name || (isVideo ? 'video.mp4' : 'foto.jpg'));
       fd.append('upload_preset', UPLOAD_PRESET);
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`);

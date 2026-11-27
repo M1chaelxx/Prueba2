@@ -17,9 +17,13 @@ export default function MediaPicker({ items, onChange, hint }) {
     setError('');
     for (const file of files) {
       const id = genId();
-      setBusy(b => [...b, { id, name: file.name || 'archivo', pct: 0 }]);
+      setBusy(b => [...b, { id, name: file.name || 'archivo', pct: 0, stage: 'upload' }]);
       try {
-        const m = await uploadMedia(file, pct => setBusy(b => b.map(x => (x.id === id ? { ...x, pct } : x))));
+        const m = await uploadMedia(
+          file,
+          pct => setBusy(b => b.map(x => (x.id === id ? { ...x, pct } : x))),
+          stage => setBusy(b => b.map(x => (x.id === id ? { ...x, stage, pct: 0 } : x)))
+        );
         onChange([...itemsRef.current, m]); itemsRef.current = [...itemsRef.current, m];
       } catch (err) {
         if (file.type.startsWith('image/')) {
@@ -55,7 +59,7 @@ export default function MediaPicker({ items, onChange, hint }) {
 
       {busy.map(b => (
         <div className="media-busy" key={b.id}>
-          <span>Subiendo {b.name}… {b.pct}%</span>
+          <span>{b.stage === 'compress' ? '🗜 Comprimiendo video (puede tardar un poco)…' : `⬆ Subiendo ${b.name}…`} {b.pct}%</span>
           <div className="progress-bar"><div className="progress-fill" style={{ width: `${b.pct}%` }} /></div>
         </div>
       ))}
