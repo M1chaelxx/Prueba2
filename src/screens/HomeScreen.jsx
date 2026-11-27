@@ -27,6 +27,22 @@ function calcEff(study, result) {
 
 export default function HomeScreen({ onStudy, onInstructivo, onProblemas, onViewSaved }) {
   const [saved, setSaved] = useState(loadLocal);
+  const [installEvt, setInstallEvt] = useState(null);
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone;
+
+  useEffect(() => {
+    const h = e => { e.preventDefault(); setInstallEvt(e); };
+    window.addEventListener('beforeinstallprompt', h);
+    return () => window.removeEventListener('beforeinstallprompt', h);
+  }, []);
+
+  const install = async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    await installEvt.userChoice.catch(() => {});
+    setInstallEvt(null);
+  };
+
   const [sync, setSync] = useState(firebaseReady ? 'connecting' : 'local');
 
   useEffect(() => {
@@ -65,6 +81,10 @@ export default function HomeScreen({ onStudy, onInstructivo, onProblemas, onView
       </header>
 
       <main className="home-body">
+        {installEvt && !standalone && (
+          <button className="install-banner" onClick={install}>📲 Instalar como aplicación (pantalla completa)</button>
+        )}
+
         <button className="home-card primary" onClick={onStudy}>
           <span className="hc-icon">📋</span>
           <div className="hc-text">
