@@ -368,3 +368,4 @@ code { background: var(--bg3); padding: 2px 7px; border-radius: 6px; }
 
 .fish-wrap { overflow-x: auto; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
 .ishi-title { display: block; margin: 6px 2px 0; color: var(--text2); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+.pdf-actions { display: flex; gap: 10px; flex-wrap: wrap; }

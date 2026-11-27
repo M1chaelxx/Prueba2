@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { exportProblemaPdf, TOOL_LABELS } from '../utils/problemaPdf';
 import { genId } from '../utils/id';
 import { firebaseReady } from '../firebase';
 import { fmtDate } from '../utils/timer';
@@ -240,69 +239,9 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
     setSaving(false);
   };
 
-  const exportPdf = () => {
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const m = 14; let y = m;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.text('Análisis de problema', m, y); y += 7;
-    doc.setFontSize(11); doc.text(p.titulo || '(sin título)', m, y, { maxWidth: 180 }); y += 8;
-    const body = (rows) => autoTable(doc, { startY: y, margin: { left: m, right: m }, body: rows, styles: { fontSize: 9, cellPadding: 2 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } }, theme: 'grid' });
-    body([
-      ['Estado', estadoOf(p.estado).label], ['Tipo / Severidad', `${p.tipo} / ${p.severidad}`],
-      ['Línea', [p.modelo, p.capacidad, p.linea].filter(Boolean).join(' ') || '-'], ['Puesto', p.puesto || '-'],
-      ['Responsable', p.responsable || '-'], ['Creado por', p.creador || '-'], ['Fecha', fmtTs(p.creado)],
-      ['Cantidad afectada', p.cantidad || '-'], ['Detectado en', p.detectadoEn || '-'],
-      ['Descripción', p.descripcion || '-'], ['Contención inmediata', p.contencion || '-'],
-      ...(p.medicion ? [['Medición', `T Real ${p.medicion.tReal}s${p.medicion.takt ? ` · Takt ${p.medicion.takt}s` : ''}`]] : []),
-    ]);
-    y = doc.lastAutoTable.finalY + 6;
-    const whys = p.porques.filter(w => w.trim());
-    if (whys.length) {
-      doc.setFont('helvetica', 'bold'); doc.text('5 Porqués', m, y); y += 2;
-      body([...whys.map((w, i) => [`Porqué ${i + 1}`, w]), ['Causa raíz', p.causaRaiz || '-']]); y = doc.lastAutoTable.finalY + 6;
-    }
-    const causas = CATEGORIAS_6M.flatMap(c => (p.ishikawa[c] || []).map(t => [c, t]));
-    if (causas.length) {
-      if (y > 250) { doc.addPage(); y = m; }
-      doc.setFont('helvetica', 'bold'); doc.text('Ishikawa (6M)', m, y); y += 2; body(causas); y = doc.lastAutoTable.finalY + 6;
-    }
-    const extra = [];
-    ESNO_DIM.forEach(d => { if (p.esno[d.id].es || p.esno[d.id].no) extra.push([`Es/No es · ${d.label}`, `ES: ${p.esno[d.id].es || '-'}\nNO ES: ${p.esno[d.id].no || '-'}`]); });
-    Object.entries(p.w2h).forEach(([k, v]) => { if (v) extra.push([`5W2H · ${k}`, v]); });
-    if (p.pareto.length) extra.push(['Pareto', [...p.pareto].sort((a, b) => b.n - a.n).map(x => `${x.cat}: ${x.n}`).join(' | ')]);
-    [['d1', 'D1 Equipo'], ['escape', 'D4 Punto de escape'], ['d5', 'D5 Correctivas'], ['d6', 'D6 Validación'], ['d7', 'D7 Prevención'], ['d8', 'D8 Cierre']].forEach(([k, l]) => { if (p.d8[k]) extra.push([l, p.d8[k]]); });
-    if (extra.length) {
-      if (y > 230) { doc.addPage(); y = m; }
-      doc.setFont('helvetica', 'bold'); doc.text('Otras herramientas de análisis', m, y); y += 2; body(extra); y = doc.lastAutoTable.finalY + 6;
-    }
-    if (p.acciones.length) {
-      if (y > 240) { doc.addPage(); y = m; }
-      doc.setFont('helvetica', 'bold'); doc.text('Plan de acción', m, y); y += 2;
-      autoTable(doc, { startY: y, margin: { left: m, right: m }, head: [['Acción', 'Responsable', 'Fecha', 'Estado']], body: p.acciones.map(a => [a.desc, a.resp || '-', a.fecha || '-', a.estado]), styles: { fontSize: 8.5 }, headStyles: { fillColor: [30, 64, 175] } });
-    }
-    if (CATEGORIAS_6M.some(c => (p.ishikawa[c] || []).some(t => t.trim()))) {
-      doc.addPage('a4', 'landscape');
-      const sy = 105; const cx = [90, 160, 230];
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('Diagrama Ishikawa (6M)', 14, 14);
-      doc.setDrawColor(30, 64, 175); doc.setLineWidth(1.2); doc.line(14, sy, 250, sy);
-      doc.setFillColor(220, 38, 38); doc.roundedRect(250, sy - 22, 36, 44, 3, 3, 'F');
-      doc.setTextColor(255, 255, 255); doc.setFontSize(8);
-      doc.text(doc.splitTextToSize(p.titulo || 'Problema', 32).slice(0, 5), 268, sy - 8, { align: 'center' });
-      CATEGORIAS_6M.forEach((cat, idx) => {
-        const top = idx < 3; const x = cx[idx % 3]; const x0 = x - 30; const y0 = top ? 30 : 180;
-        doc.setDrawColor(37, 99, 235); doc.setLineWidth(0.8); doc.line(x0, y0, x, sy);
-        doc.setFillColor(37, 99, 235); doc.roundedRect(x0 - 24, top ? 20 : 183, 44, 8, 2, 2, 'F');
-        doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.text(cat, x0 - 2, top ? 25.5 : 188.5, { align: 'center' });
-        const causes = (p.ishikawa[cat] || []).filter(t => t.trim()).slice(0, 6);
-        doc.setTextColor(30, 30, 30); doc.setFontSize(7); doc.setLineWidth(0.2); doc.setDrawColor(120, 120, 120);
-        causes.forEach((c, k) => {
-          const t = (k + 1) / (causes.length + 1); const bx = x0 + (x - x0) * t; const by = y0 + (sy - y0) * t;
-          doc.line(bx - 38, by, bx, by); doc.text(clip(c, 30), bx - 37, by - 1);
-        });
-      });
-      doc.setTextColor(0, 0, 0);
-    }
-    doc.save(`problema-${(p.titulo || 'sin-titulo').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.pdf`);
-    flash('✓ PDF exportado');
+  const exportPdf = only => {
+    try { exportProblemaPdf(p, only); flash(`✓ PDF exportado${only ? ` · ${TOOL_LABELS[only]}` : ''}`); }
+    catch (e) { console.error(e); flash('⚠ No se pudo generar el PDF'); }
   };
 
   const comentarios = problema.comentarios || p.comentarios || [];
@@ -595,7 +534,12 @@ function Detalle({ problema, onBack, onDeleted, isNew }) {
           </div>
         )}
 
-        <button className="ghost-btn pdf-btn" onClick={exportPdf}>⬇ Exportar análisis a PDF</button>
+        <div className="pdf-actions">
+          {tab !== 'resumen' && tab !== 'comentarios' && (
+            <button className="ghost-btn pdf-btn" onClick={() => exportPdf(tab)}>⬇ Exportar solo {TOOL_LABELS[tab]}</button>
+          )}
+          <button className="ghost-btn pdf-btn" onClick={() => exportPdf(null)}>⬇ Reporte completo (PDF)</button>
+        </div>
       </div>
       {toast && <div className="toast">{toast}</div>}
     </div>
